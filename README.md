@@ -192,3 +192,10 @@ rewrites the goldens in `test/layout-golden`.
 ## License
 
 MIT
+
+## Footnote
+
+Derived from https://github.com/vgteam/sequenceTubeMap and carries original
+copywrite in MIT license form
+
+Used in our MemPanG tube map https://github.com/cmdcolin/sequenceTubeMap
