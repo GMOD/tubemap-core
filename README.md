@@ -11,11 +11,7 @@ Versions 0.1.0 and 0.2.0 also went out as `@gmod/tubemap-core`, which is
 deprecated; install this name instead.
 
 ```ts
-import {
-  curvePaths,
-  layoutTubeMap,
-  nodeOutlinePath,
-} from '@jbrowse/tubemap-core'
+import { layoutTubeMap } from '@jbrowse/tubemap-core'
 
 const layout = layoutTubeMap(
   [
@@ -35,14 +31,79 @@ const layout = layoutTubeMap(
 
 - Track 0 is the reference; `-name` is a reverse visit
 - A node without `seq` needs `sequenceLength`
-- `layout.shapes`: `rectangles`, `curves` (`curvePaths` adds SVG paths),
-  `verticalRectangles` and `corners` (inversions)
+
+## What `layoutTubeMap` returns
+
+A `TubeMapLayout`, or `undefined` when no visible track is left. Every
+coordinate is in layout pixels, x rightward and y downward, so a renderer needs
+no further math.
+
+| Field                            | Holds                                                                                                                                                                                               |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shapes`                         | What to draw: `rectangles` (straight tube segments), `curves` (tubes changing lane between nodes), `corners` and `verticalRectangles` (inversions). Each shape has coordinates and its track's `id` |
+| `nodes`                          | The placed nodes, with `x`, `y`, `pixelWidth`, `contentHeight`, `order` and the `tracks` through each. Indexed from 1, with a hole at 0                                                             |
+| `tracks`                         | The haplotype tracks and placed reads, each with its `path` and `width`. A shape finds its track by `id`                                                                                            |
+| `reads`                          | The placed reads alone                                                                                                                                                                              |
+| `bounds`                         | `{ minX, maxX, minY, maxY }` around everything drawn; size the SVG `viewBox` from it                                                                                                                |
+| `nodeMap`                        | Node name to index in `nodes`                                                                                                                                                                       |
+| `maxOrder`, `trackForRuler`      | The count of horizontal order slots, and the name of the track that carries coordinates for a ruler                                                                                                 |
+| `coarsened`, `coarsenedEdgeMeta` | What each banded layer drew and the label of every band; both are empty without `layers` or `coarsenedReadView`                                                                                     |
+
+For the example above:
+
+```ts
+layout.bounds
+// { minX: 20, maxX: 185.57, minY: 10, maxY: 85 }
+
+layout.nodes[1]
+// { name: '1', seq: 'ACGT', x: 20, y: 20, pixelWidth: 17, contentHeight: 30,
+//   order: 0, tracks: [0, 1], successors: [2, 3], ... }
+
+layout.shapes.rectangles[0]
+// { xStart: 0, yStart: 35, xEnd: 37, yEnd: 49, id: 1, name: 'alt',
+//   type: 'haplotype' }
+```
+
 - Shapes carry no color: each names its track's `id`, and the caller colors it
-  from that track in `layout.tracks`, so a recolor needs no new layout
-- `nodeOutlinePath(node)`: a node's box as SVG path data; `new Path2D(d)` on a
-  canvas
+  from the matching track in `layout.tracks`, so a recolor needs no new layout
 - `layout.nodes` has a hole at index 0: use `forEach` or `filter`, not
   `for...of` or `find`
+
+### Drawing the layout
+
+`curvePaths(curves, type)` fills in each curve's SVG `path`, and
+`nodeOutlinePath(node)` returns a node's box as path data (`new Path2D(d)` on a
+canvas). Together they are enough to draw the example as SVG:
+
+```ts
+import { curvePaths, nodeOutlinePath } from '@jbrowse/tubemap-core'
+
+const colors = ['#1f77b4', '#ff7f0e'] // by track id
+const { minX, maxX, minY, maxY } = layout.bounds
+const parts: string[] = []
+for (const r of layout.shapes.rectangles) {
+  const w = r.xEnd - r.xStart + 1
+  const h = r.yEnd - r.yStart + 1
+  parts.push(
+    `<rect x="${r.xStart}" y="${r.yStart}" width="${w}" height="${h}" fill="${colors[r.id]}"/>`,
+  )
+}
+for (const c of curvePaths(layout.shapes.curves, 'haplotype')) {
+  parts.push(`<path d="${c.path}" fill="${colors[c.id]}"/>`)
+}
+layout.nodes.forEach(node => {
+  parts.push(`<path d="${nodeOutlinePath(node)}" fill="none" stroke="black"/>`)
+})
+const svg = `<svg xmlns="http://www.w3.org/2000/svg"
+  viewBox="${minX - 10} ${minY - 10} ${maxX - minX + 20} ${maxY - minY + 20}">
+  ${parts.join('')}</svg>`
+```
+
+![The two paths: the reference runs straight and the alternate dips through node 3](docs/example.png)
+
+Reads go in the third argument and draw the same way: their shapes have
+`type: 'read'`, so call `curvePaths(layout.shapes.curves, 'read')` for their
+curves.
 
 ## Topology and placement
 
