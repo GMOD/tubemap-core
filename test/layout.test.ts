@@ -1,6 +1,6 @@
-// @vitest-environment node
+import { describe, expect, it } from 'vitest'
 
-import { curvePaths, nodeOutlinePath } from './geometry.ts'
+import { curvePaths, nodeOutlinePath } from '../src/geometry.ts'
 import {
   FACET_GAP,
   FACET_LABEL_HEIGHT,
@@ -12,10 +12,10 @@ import {
   layoutTubeMap,
   placeFacets,
   placeTubeMap,
-} from './layout.ts'
+} from '../src/layout.ts'
 
-import type { TubeMapLayout } from './layout.ts'
-import type { InputNode, InputTrack, TrackCurve } from './types.ts'
+import type { TubeMapLayout } from '../src/layout.ts'
+import type { InputNode, InputTrack, TrackCurve } from '../src/types.ts'
 
 // A SNP bubble: the reference walks 1 2 4, the alternate 1 3 4.
 const nodes: InputNode[] = [

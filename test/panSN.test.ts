@@ -1,6 +1,6 @@
-// @vitest-environment node
+import { describe, expect, it } from 'vitest'
 
-import { parsePanSN } from './panSN.ts'
+import { parsePanSN } from '../src/panSN.ts'
 
 describe('parsePanSN', () => {
   it('reads sample, haplotype and contig from the names the bundled graphs carry', () => {

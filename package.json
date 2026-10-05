@@ -3,28 +3,68 @@
   "version": "0.2.0",
   "description": "The sequenceTubeMap layout: pangenome graph paths and reads as tube map shapes, with no DOM or d3",
   "license": "MIT",
+  "packageManager": "pnpm@11.15.1",
   "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/cmdcolin/sequenceTubeMap.git",
-    "directory": "packages/tubemap-core"
+  "sideEffects": false,
+  "author": {
+    "name": "Colin Diesh",
+    "email": "colin.diesh@gmail.com",
+    "url": "https://github.com/cmdcolin"
   },
+  "main": "dist/index.js",
   "exports": {
-    ".": "./src/index.ts"
+    "import": "./esm/index.js",
+    "require": "./dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "esm",
+    "src"
+  ],
+  "scripts": {
+    "test": "vitest",
+    "coverage": "pnpm test --coverage",
+    "clean": "rimraf dist esm",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint --report-unused-disable-directives --max-warnings 0",
+    "typecheck": "tsc --noEmit -p tsconfig.lint.json",
+    "prebuild": "pnpm clean",
+    "build": "pnpm build:esm && pnpm build:es5",
+    "build:esm": "tsc --outDir esm",
+    "build:es5": "tsc --module commonjs --moduleResolution bundler --outDir dist",
+    "postbuild:es5": "echo '{\"type\": \"commonjs\"}' > dist/package.json",
+    "test:pack": "./scripts/test-pack.sh",
+    "preversion": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test --run && pnpm build && pnpm test:pack",
+    "version": "git-cliff --tag v$npm_package_version --unreleased --prepend CHANGELOG.md && git add CHANGELOG.md",
+    "postversion": "git push --follow-tags"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.2",
+    "@vitest/coverage-v8": "^5.0.1",
+    "eslint": "^10.11.0",
+    "eslint-plugin-import-x": "^4.17.1",
+    "git-cliff": "^2.14.2",
+    "prettier": "^3.9.9",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GMOD/tubemap-core.git"
+  },
+  "keywords": [
+    "pangenome",
+    "tubemap",
+    "sequencetubemap",
+    "variation-graph",
+    "visualization",
+    "genomics"
   ],
   "publishConfig": {
-    "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
-    }
-  },
-  "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.build.json",
-    "prepack": "pnpm build"
+    "access": "public"
   }
 }
