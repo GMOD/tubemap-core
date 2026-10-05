@@ -1,3 +1,16 @@
+## [0.2.1](https://github.com/GMOD/tubemap-core/compare/v0.2.0...v0.2.1) (2026-10-05)
+
+### Other Changes
+
+- Stand alone as a root package with GMOD tooling ([2385dd6](https://github.com/GMOD/tubemap-core/commit/2385dd643293b21de03e1d39341a8f88504d5f3b))
+- Pin layout goldens from fixtures of the viewer's layout inputs ([a89d1e3](https://github.com/GMOD/tubemap-core/commit/a89d1e303be0458a036f28077a22aeeebc8f645a))
+- Typecheck under exactOptionalPropertyTypes ([8f6d265](https://github.com/GMOD/tubemap-core/commit/8f6d265e4c55a88e040bf2cac08d56e239ebaa11))
+- Pass eslint and prettier ([747fbe0](https://github.com/GMOD/tubemap-core/commit/747fbe0e593793b3cb98b09d55df9e37d1d6fee3))
+- Test on push and publish from v* tags with npm trusted publishing ([c41dce9](https://github.com/GMOD/tubemap-core/commit/c41dce959e70ac00a72b110816dacdebb3b88e4a))
+- Rename to @jbrowse/tubemap-core and document development and releases ([b91598e](https://github.com/GMOD/tubemap-core/commit/b91598e4b6f6ea562476b5ded43a9ee2e9ba6eae))
+- Document what layoutTubeMap returns and how to draw it ([deaaa8d](https://github.com/GMOD/tubemap-core/commit/deaaa8dd07cfd3d84148017794c4b78dc5686795))
+- Footnote ([5d3d092](https://github.com/GMOD/tubemap-core/commit/5d3d0920cc06a841e6bfd02d90a21fd78402e6d0))
+
 ## [0.2.0](https://github.com/GMOD/tubemap-core/releases/tag/v0.2.0) (2026-10-05)
 
 - First release as `@jbrowse/tubemap-core`; 0.1.0 and 0.2.0 also went out
