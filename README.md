@@ -1,10 +1,21 @@
-# @gmod/tubemap-core
+# @jbrowse/tubemap-core
 
 sequenceTubeMap's layout: graph nodes and paths (and reads) in, tube map shapes
 out. No DOM, d3 or React.
 
+```sh
+pnpm add @jbrowse/tubemap-core
+```
+
+Versions 0.1.0 and 0.2.0 also went out as `@gmod/tubemap-core`, which is
+deprecated; install this name instead.
+
 ```ts
-import { curvePaths, layoutTubeMap, nodeOutlinePath } from '@gmod/tubemap-core'
+import {
+  curvePaths,
+  layoutTubeMap,
+  nodeOutlinePath,
+} from '@jbrowse/tubemap-core'
 
 const layout = layoutTubeMap(
   [
@@ -86,18 +97,37 @@ const { panels, bounds } = placeFacets(topology, { facetBy: 'sample_name' })
 `layout.coarsenedEdgeMeta` labels every band by its id, which no two bands
 share.
 
-## Changes since 0.1.0
+## Development
 
-- Breaking: shapes no longer carry `color` or `alpha`, and the `trackColor` and
-  `trackAlpha` options are gone; color each shape from its track by `id`
-- Breaking: `layout.coarsened` is a `Coarsenings` record keyed by layer data,
-  not one `Coarsening`
-- `layoutTopology` and `placeTubeMap` split the layout in two, and the read
-  filters now run at placement
-- `layers` bands haplotypes with reads on screen
-- `placeFacets` and `parsePanSN` facet by read group, sample or haplotype sample
+```sh
+pnpm install
+pnpm lint
+pnpm format:check
+pnpm typecheck
+pnpm build
+pnpm test --run
+pnpm test:pack
+```
+
+`test/layout.golden.test.ts` pins every shape and node position for the
+sequenceTubeMap demo examples and a few bundled graphs, under each option that
+picks a different layout path. Its inputs in `test/fixtures` are the nodes,
+tracks and reads the viewer hands the layout, and
+`scripts/dump-viewer-fixtures.ts` regenerates them from a viewer checkout. After
+an intended layout change, `pnpm test --run -u test/layout.golden.test.ts`
+rewrites the goldens in `test/layout-golden`.
+
+`CHANGELOG.md` lists the changes in each version.
 
 ## Releasing
 
-- Bump `version`, commit, push tag `tubemap-core-v<version>`
-- `.github/workflows/publish-tubemap-core.yml` tests and publishes it
+- `pnpm version <patch|minor|major>` runs the CI checks, bumps `version`, writes
+  the changelog with git-cliff, tags `v<version>` and pushes the tag
+- `.github/workflows/publish.yml` checks that the tag names the package version,
+  tests, and publishes to npm with provenance under trusted publishing, which
+  needs no stored token
+- A GitHub release follows, its notes taken from `CHANGELOG.md`
+
+## License
+
+MIT

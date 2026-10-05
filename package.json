@@ -1,5 +1,5 @@
 {
-  "name": "@gmod/tubemap-core",
+  "name": "@jbrowse/tubemap-core",
   "version": "0.2.0",
   "description": "The sequenceTubeMap layout: pangenome graph paths and reads as tube map shapes, with no DOM or d3",
   "license": "MIT",
