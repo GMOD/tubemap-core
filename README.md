@@ -196,6 +196,10 @@ MIT
 ## Footnote
 
 Derived from https://github.com/vgteam/sequenceTubeMap and carries original
-copywrite in MIT license form
+copyright in MIT license form
 
-Used in our MemPanG tube map https://github.com/cmdcolin/sequenceTubeMap
+## Used in
+
+- MemPanG tube map https://github.com/cmdcolin/sequenceTubeMap
+- JBrowse 2 graphgenomeviewer plugin
+  https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer
