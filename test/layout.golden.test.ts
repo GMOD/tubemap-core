@@ -61,8 +61,10 @@ function describeLayout(layout: TubeMapLayout | undefined) {
     nodes.push({ name, order, x, y, pixelWidth, contentHeight })
   })
   const { rectangles, curves, corners, verticalRectangles } = layout.shapes
-  const withoutName = <T extends { name?: string | undefined }>({ name: _, ...rest }: T) =>
-    rest
+  const withoutName = <T extends { name?: string | undefined }>({
+    name: _,
+    ...rest
+  }: T) => rest
   // One banded layer as itself, so a single-layer golden reads as it did
   // before layers
   const coarsenings = Object.values(layout.coarsened)

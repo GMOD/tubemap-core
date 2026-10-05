@@ -3,8 +3,8 @@
 // drawing. It runs in two phases, each on a fresh LayoutState: layoutTopology
 // merges, orders, orients and sizes the nodes and fixes their x, and
 // placeTubeMap stacks a chosen set of tracks and reads on that topology.
-import { emptyTrackShapes } from './types.ts'
 import { parsePanSN } from './panSN.ts'
+import { emptyTrackShapes } from './types.ts'
 
 import type {
   HaplotypeShare,
@@ -27,7 +27,7 @@ const DEBUG = false as boolean
 
 function debugLog(...args: unknown[]): void {
   if (DEBUG) {
-    // oxlint-disable-next-line no-console
+    // eslint-disable-next-line no-console
     console.log(...args)
   }
 }
@@ -822,7 +822,9 @@ function straightenTrack(state: LayoutState, index: number): void {
       nodesToInvert.add(forward(visit))
     }
   }
-  if (nodesToInvert.size === 0) return
+  if (nodesToInvert.size === 0) {
+    return
+  }
 
   for (const { sequence } of [...state.tracks, ...state.reads]) {
     for (let j = 0; j < sequence.length; j += 1) {
@@ -975,7 +977,9 @@ function placeReads(state: LayoutState): void {
         prevSegment[i] = lastValidPrev ?? read.path[0]
       }
       const seg = read.path[i]!
-      if (seg.node !== null && seg.node) lastValidPrev = seg
+      if (seg.node !== null && seg.node) {
+        lastValidPrev = seg
+      }
     }
     const nextSegment = new Array<Segment | undefined>(len)
     let firstValidNext: Segment | undefined
@@ -986,7 +990,9 @@ function placeReads(state: LayoutState): void {
         nextSegment[i] = firstValidNext ?? read.path[len - 1]
       }
       const seg = read.path[i]!
-      if (seg.node !== null && seg.node) firstValidNext = seg
+      if (seg.node !== null && seg.node) {
+        firstValidNext = seg
+      }
     }
 
     read.path.forEach((element, pathIdx) => {
@@ -1297,37 +1303,47 @@ function compareReadOutgoingSegmentsByGoingTo(
   const initialNodeA = readA.path[pathIndexA]?.node
   const initialNodeB = readB.path[pathIndexB]?.node
   let nodeA: LayoutNode | null | undefined =
-    initialNodeA != null ? state.nodes[initialNodeA] : null
+    typeof initialNodeA === 'number' ? state.nodes[initialNodeA] : null
   let nodeB: LayoutNode | null | undefined =
-    initialNodeB != null ? state.nodes[initialNodeB] : null
+    typeof initialNodeB === 'number' ? state.nodes[initialNodeB] : null
   // Follow the reads' paths until we find the node they diverge at
   // Or, they go through all the same nodes and we do a tiebreaker at the end
-  while (nodeA != null && nodeB != null && nodeA === nodeB) {
+  while (nodeA && nodeB && nodeA === nodeB) {
     if (pathIndexA < readA.path.length - 1) {
       pathIndexA += 1
-      while (readA.path[pathIndexA]?.node === null) pathIndexA += 1 // skip null nodes in path
+      while (readA.path[pathIndexA]?.node === null) {
+        pathIndexA += 1
+      } // skip null nodes in path
       const nextNodeIdx = readA.path[pathIndexA]?.node
-      nodeA = nextNodeIdx != null ? state.nodes[nextNodeIdx] : null
+      nodeA = typeof nextNodeIdx === 'number' ? state.nodes[nextNodeIdx] : null
     } else {
       nodeA = null
     }
     if (pathIndexB < readB.path.length - 1) {
       pathIndexB += 1
-      while (readB.path[pathIndexB]?.node === null) pathIndexB += 1 // skip null nodes in path
+      while (readB.path[pathIndexB]?.node === null) {
+        pathIndexB += 1
+      } // skip null nodes in path
       const nextNodeIdx = readB.path[pathIndexB]?.node
-      nodeB = nextNodeIdx != null ? state.nodes[nextNodeIdx] : null
+      nodeB = typeof nextNodeIdx === 'number' ? state.nodes[nextNodeIdx] : null
     } else {
       nodeB = null
     }
   }
-  if (nodeA != null) {
-    if (nodeB != null) return compareNodesByOrder(nodeA, nodeB)
+  if (nodeA) {
+    if (nodeB) {
+      return compareNodesByOrder(nodeA, nodeB)
+    }
     return 1 // nodeB is null, nodeA not null
   }
-  if (nodeB != null) return -1 // nodeB not null, nodeA null
+  if (nodeB) {
+    return -1
+  } // nodeB not null, nodeA null
   // both nodes are null -> both end in the same node
   const beginDiff = (readA.firstNodeOffset ?? 0) - (readB.firstNodeOffset ?? 0)
-  if (beginDiff !== 0) return beginDiff
+  if (beginDiff !== 0) {
+    return beginDiff
+  }
 
   // break tie: both reads cover the same nodes and begin at the same position
 
@@ -1376,14 +1392,20 @@ function compareInternalReads(
   // compare by first base within first node
   const aFirst = a.firstNodeOffset ?? 0
   const bFirst = b.firstNodeOffset ?? 0
-  if (aFirst < bFirst) return -1
-  else if (aFirst > bFirst) return 1
+  if (aFirst < bFirst) {
+    return -1
+  } else if (aFirst > bFirst) {
+    return 1
+  }
 
   // compare by last base within last node
   const aLast = a.finalNodeCoverLength ?? 0
   const bLast = b.finalNodeCoverLength ?? 0
-  if (aLast < bLast) return -1
-  else if (aLast > bLast) return 1
+  if (aLast < bLast) {
+    return -1
+  } else if (aLast > bLast) {
+    return 1
+  }
 
   return 0
 }
@@ -1441,13 +1463,25 @@ function basicPath(state: LayoutState, track: Track): Segment[] {
     const { order } = currentNode
 
     if (order > previousNode.order) {
-      if (!previousNodeIsForward) pass(previousNode.order, true)
-      for (let j = previousNode.order + 1; j < order; j += 1) pass(j, true)
-      if (!currentNodeIsForward) pass(order, true)
+      if (!previousNodeIsForward) {
+        pass(previousNode.order, true)
+      }
+      for (let j = previousNode.order + 1; j < order; j += 1) {
+        pass(j, true)
+      }
+      if (!currentNodeIsForward) {
+        pass(order, true)
+      }
     } else if (order < previousNode.order) {
-      if (previousNodeIsForward) pass(previousNode.order, false)
-      for (let j = previousNode.order - 1; j > order; j -= 1) pass(j, false)
-      if (currentNodeIsForward) pass(order, false)
+      if (previousNodeIsForward) {
+        pass(previousNode.order, false)
+      }
+      for (let j = previousNode.order - 1; j > order; j -= 1) {
+        pass(j, false)
+      }
+      if (currentNodeIsForward) {
+        pass(order, false)
+      }
     } else if (currentNodeIsForward === previousNodeIsForward) {
       pass(order, !currentNodeIsForward)
     }
@@ -1657,7 +1691,9 @@ function generateNodeOrderOfSingleTrack(
     const idx = Math.abs(nodeIndex)
     if (nodeIndex < 0) {
       const order = (state.nodeOrders[idx] ??= backwardOrder)
-      if (order < minOrder) minOrder = order
+      if (order < minOrder) {
+        minOrder = order
+      }
       forwardOrder = order
       backwardOrder = order - 1
     } else {
@@ -1870,7 +1906,9 @@ function generateNodeOrder(state: LayoutState): void {
     }
   }
 
-  if (minOrder < 0) increaseOrderForAllNodes(state, -minOrder)
+  if (minOrder < 0) {
+    increaseOrderForAllNodes(state, -minOrder)
+  }
 
   // Nodes unreachable from any track get UNREACHABLE_ORDER so every node ends
   // up with a defined order; downstream code uses `order >= 0` to skip them.
@@ -1904,7 +1942,9 @@ function isSuccessor(
   stamp[first] = generation
   while (stack.length > 0) {
     const current = stack.pop()!
-    if (current === second) return true
+    if (current === second) {
+      return true
+    }
     for (const childIndex of state.nodes[current]!.successors) {
       if (stamp[childIndex] !== generation) {
         stamp[childIndex] = generation
@@ -1919,7 +1959,9 @@ function isSuccessor(
 function getMaxOrder(state: LayoutState): number {
   let max = -1
   state.nodeOrders.forEach(order => {
-    if (order !== undefined && order > max) max = order
+    if (order !== undefined && order > max) {
+      max = order
+    }
   })
   return max
 }
@@ -1932,7 +1974,9 @@ function uninvert(sequence: number[]): number[] {
 // increases the order-value of all nodes by amount
 function increaseOrderForAllNodes(state: LayoutState, amount: number): void {
   state.nodeOrders.forEach((order, i) => {
-    if (order !== undefined) state.nodeOrders[i] = order + amount
+    if (order !== undefined) {
+      state.nodeOrders[i] = order + amount
+    }
   })
 }
 
@@ -2027,7 +2071,9 @@ function switchNodeOrientationForPaths(
   const onPivot = new Uint8Array(state.nodes.length)
   for (const nodeName of pivotPath.sequence) {
     const index = isReverse(nodeName) ? undefined : state.nodeMap.get(nodeName)
-    if (index !== undefined) onPivot[index] = 1
+    if (index !== undefined) {
+      onPivot[index] = 1
+    }
   }
 
   for (const path of paths) {
@@ -2035,7 +2081,9 @@ function switchNodeOrientationForPaths(
     const last = indexSequence.length - 1
     for (let j = 0; j <= last; j += 1) {
       const index = Math.abs(indexSequence[j]!)
-      if (onPivot[index] === 1) continue
+      if (onPivot[index] === 1) {
+        continue
+      }
       const order = state.nodes[index]!.order
       const prevOrder =
         j > 0 ? state.nodes[Math.abs(indexSequence[j - 1]!)]!.order : undefined
@@ -2130,7 +2178,7 @@ function calculateExtraSpace(state: LayoutState): number[] {
       } else {
         // Track is going to a different node; account for space needed to limit rise/fall angle
         const yDifference = Math.abs((seg.y ?? 0) - (prevSeg.y ?? 0))
-        //TODO: Extra space should also be accounted when there are too many tracks curving at the nodes
+        // TODO: Extra space should also be accounted when there are too many tracks curving at the nodes
         fallAngleAdjustment[seg.order] = Math.max(
           yDifference / 17.5,
           fallAngleAdjustment[seg.order]!,
@@ -2311,13 +2359,18 @@ function generateSingleLaneAssignment(
   assignment.forEach(node => {
     if (node.node !== null) {
       state.nodes[node.node]!.topLane = currentLane
-      if (prevNameIsNull) currentY -= 10
+      if (prevNameIsNull) {
+        currentY -= 10
+      }
       state.nodes[node.node]!.y = currentY
       state.nodes[node.node]!.contentHeight = 0
       prevNameIsNull = false
     } else {
-      if (prevNameIsNull) currentY -= 25
-      else if (currentY > 20) currentY -= 10
+      if (prevNameIsNull) {
+        currentY -= 25
+      } else if (currentY > 20) {
+        currentY -= 10
+      }
       prevNameIsNull = true
     }
 
@@ -2329,7 +2382,7 @@ function generateSingleLaneAssignment(
       }
       state.tracks[track.trackID]!.path[track.segmentID]!.lane = currentLane
       state.tracks[track.trackID]!.path[track.segmentID]!.y = currentY
-      if (track.idealY != null) {
+      if (typeof track.idealY === 'number') {
         potentialAdjustmentValues.add(track.idealY - currentY)
       }
       currentLane += 1
@@ -2380,7 +2433,9 @@ function adjustVertically3(
   node: LayoutNode,
   adjustBy: number,
 ): void {
-  if (node.order < 0 || state.assignments[node.order] === undefined) return
+  if (node.order < 0 || state.assignments[node.order] === undefined) {
+    return
+  }
   state.assignments[node.order]!.forEach(assignmentNode => {
     if (assignmentNode.node !== null) {
       const aNode = state.nodes[assignmentNode.node]!
@@ -2423,7 +2478,7 @@ function getVerticalAdjustmentCost(
   assignment.forEach(node => {
     node.tracks.forEach(track => {
       if (
-        track.idealY != null &&
+        typeof track.idealY === 'number' &&
         state.tracks[track.trackID]!.type !== 'read'
       ) {
         result +=
@@ -2444,8 +2499,11 @@ function compareByIdealLane(
 ): number {
   if (a.idealLane !== undefined) {
     if (b.idealLane !== undefined) {
-      if (a.idealLane < b.idealLane) return -1
-      else if (a.idealLane > b.idealLane) return 1
+      if (a.idealLane < b.idealLane) {
+        return -1
+      } else if (a.idealLane > b.idealLane) {
+        return 1
+      }
       return 0
     }
     return -1
@@ -2460,8 +2518,12 @@ function compareNodesByOrder(
   a: MaybeUnplacedNode,
   b: MaybeUnplacedNode,
 ): number {
-  if (a.order !== b.order) return a.order - b.order
-  if (a.y !== undefined && b.y !== undefined) return a.y - b.y
+  if (a.order !== b.order) {
+    return a.order - b.order
+  }
+  if (a.y !== undefined && b.y !== undefined) {
+    return a.y - b.y
+  }
   return 0
 }
 
@@ -2526,7 +2588,9 @@ export function getXCoordinateOfBaseWithinNode(
   node: Node,
   base: number,
 ): number | null {
-  if (base > node.sequenceLength) return null // equality is allowed
+  if (base > node.sequenceLength) {
+    return null
+  } // equality is allowed
   return clampedXCoordinateOfBaseWithinNode(node, base)
 }
 
@@ -2779,7 +2843,9 @@ function buildCoarsenedSyntheticBands(
     const weight = Math.max(item.freq ?? 1, 1)
     total += weight
     const seq = item.indexSequence
-    if (seq.length < 2) continue
+    if (seq.length < 2) {
+      continue
+    }
     for (let i = 0; i < seq.length - 1; i += 1) {
       const sSigned = seq[i]!
       const dSigned = seq[i + 1]!
@@ -2816,12 +2882,16 @@ function buildCoarsenedSyntheticBands(
   // hot edges read as obvious "highways."
   let maxEdgeCount = 0
   for (const e of edges.values()) {
-    if (e.crossings > maxEdgeCount) maxEdgeCount = e.crossings
+    if (e.crossings > maxEdgeCount) {
+      maxEdgeCount = e.crossings
+    }
   }
   const BAND_MIN_WIDTH = READ_WIDTH
   const BAND_MAX_WIDTH = 60
   const widthForCount = (c: number): number => {
-    if (maxEdgeCount <= 1) return BAND_MIN_WIDTH
+    if (maxEdgeCount <= 1) {
+      return BAND_MIN_WIDTH
+    }
     return (
       BAND_MIN_WIDTH +
       (BAND_MAX_WIDTH - BAND_MIN_WIDTH) * Math.sqrt(c / maxEdgeCount)
@@ -2926,7 +2996,9 @@ function bandHaplotypes(
   const altHaplotypes = state.tracks
     .filter((_, i) => i !== refIndex)
     .map(walk => orientedLike(refSigns, walk))
-  if (refDuplicates > 0) altHaplotypes.push({ ...ref, freq: refDuplicates })
+  if (refDuplicates > 0) {
+    altHaplotypes.push({ ...ref, freq: refDuplicates })
+  }
   if (altHaplotypes.length === 0) {
     return undefined
   }
@@ -2965,15 +3037,21 @@ function firstVisitSigns(state: LayoutState, ref: Track): Int8Array {
   const signs = new Int8Array(state.nodes.length)
   for (const visit of ref.indexSequence) {
     const node = Math.abs(visit)
-    if (signs[node] === 0) signs[node] = Math.sign(visit)
+    if (signs[node] === 0) {
+      signs[node] = Math.sign(visit)
+    }
   }
   return signs
 }
 
 function formatShare({ count, total }: HaplotypeShare): string {
   const share = count / total
-  if (share < 0.01) return '<1%'
-  if (share > 0.99 && count < total) return '>99%'
+  if (share < 0.01) {
+    return '<1%'
+  }
+  if (share > 0.99 && count < total) {
+    return '>99%'
+  }
   return `${Math.round(share * 100)}%`
 }
 
@@ -3171,13 +3249,17 @@ function mergeNodes(state: LayoutState): void {
       if (current > 0) {
         if (i > 0) {
           addNeighbor(pred, current, previous)
-          if (previous < 0) addNeighbor(pred, current, -previous)
+          if (previous < 0) {
+            addNeighbor(pred, current, -previous)
+          }
         } else if (isHaplotype) {
           addNeighbor(pred, current, TRACK_END)
         }
         if (i < last) {
           addNeighbor(succ, current, next)
-          if (next < 0) addNeighbor(succ, current, -next)
+          if (next < 0) {
+            addNeighbor(succ, current, -next)
+          }
         } else if (isHaplotype) {
           addNeighbor(succ, current, TRACK_END)
         }
@@ -3185,13 +3267,17 @@ function mergeNodes(state: LayoutState): void {
         const index = -current
         if (i > 0) {
           addNeighbor(succ, index, -previous)
-          if (previous > 0) addNeighbor(succ, index, previous)
+          if (previous > 0) {
+            addNeighbor(succ, index, previous)
+          }
         } else if (isHaplotype) {
           addNeighbor(succ, index, TRACK_END)
         }
         if (i < last) {
           addNeighbor(pred, index, -next)
-          if (next > 0) addNeighbor(pred, index, next)
+          if (next > 0) {
+            addNeighbor(pred, index, next)
+          }
         } else if (isHaplotype) {
           addNeighbor(pred, index, TRACK_END)
         }
@@ -3203,7 +3289,9 @@ function mergeNodes(state: LayoutState): void {
 
   const absorbed = new Uint8Array(state.nodes.length)
   state.nodes.forEach((_, i) => {
-    if (mergeableWithPred(i, pred, succ) !== 0) absorbed[i] = 1
+    if (mergeableWithPred(i, pred, succ) !== 0) {
+      absorbed[i] = 1
+    }
   })
 
   // Merge each run into its first node, noting the node every run member
@@ -3212,7 +3300,9 @@ function mergeNodes(state: LayoutState): void {
   const start = new Float64Array(state.nodes.length)
   const end = new Float64Array(state.nodes.length)
   state.nodes.forEach((node, head) => {
-    if (absorbed[head] === 1) return
+    if (absorbed[head] === 1) {
+      return
+    }
     origin[head] = head
     end[head] = node.sequenceLength
     for (let donor = head; mergeableWithSucc(donor, pred, succ);) {
@@ -3271,7 +3361,9 @@ function mergeNodes(state: LayoutState): void {
       }
     })
     read.sequence = mergedSequence
-    if (read.sequenceNew !== undefined) read.sequenceNew = mergedEntries
+    if (read.sequenceNew !== undefined) {
+      read.sequenceNew = mergedEntries
+    }
   })
 
   state.tracks.forEach(track => {

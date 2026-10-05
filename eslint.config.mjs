@@ -10,7 +10,7 @@ export default defineConfig(
       'esm/*',
       'coverage/*',
       'eslint.config.mjs',
-      'scripts/*.sh',
+      'scripts',
       '.claude/**',
     ],
   },

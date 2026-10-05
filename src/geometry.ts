@@ -18,10 +18,15 @@ function groupBy<T, K>(items: readonly T[], key: (item: T) => K): Map<K, T[]> {
 }
 
 function compareCurvesByXYStartValue(a: TrackCurve, b: TrackCurve): number {
-  if (a.xStart < b.xStart) return 1
-  else if (a.xStart > b.xStart) return -1
-  else if (a.yStart > b.yStart) return 1
-  else if (a.yStart < b.yStart) return -1
+  if (a.xStart < b.xStart) {
+    return 1
+  } else if (a.xStart > b.xStart) {
+    return -1
+  } else if (a.yStart > b.yStart) {
+    return 1
+  } else if (a.yStart < b.yStart) {
+    return -1
+  }
   return 0
 }
 
@@ -38,7 +43,9 @@ function curveEnds(curve: TrackCurve): [number, number, number, number] {
 function compareTuples(a: readonly number[], b: readonly number[]): number {
   for (let i = 0; i < a.length; i += 1) {
     const d = a[i]! - b[i]!
-    if (d !== 0) return d
+    if (d !== 0) {
+      return d
+    }
   }
   return 0
 }

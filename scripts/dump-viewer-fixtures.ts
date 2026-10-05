@@ -16,9 +16,15 @@ import * as demo from './demo-data.js'
 
 const dir = process.env.FIXTURE_DIR!
 
-function write(name: string, data: { nodes: object; tracks: object; reads: object }) {
+function write(
+  name: string,
+  data: { nodes: object; tracks: object; reads: object },
+) {
   const { nodes, tracks, reads } = data
-  writeFileSync(`${dir}/${name}.json`, `${JSON.stringify({ nodes, tracks, reads })}\n`)
+  writeFileSync(
+    `${dir}/${name}.json`,
+    `${JSON.stringify({ nodes, tracks, reads })}\n`,
+  )
 }
 
 function upload(api: GBZBaseAPI, type: 'graph' | 'read', path: string) {
