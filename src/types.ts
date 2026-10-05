@@ -20,8 +20,8 @@ export interface TrackRectangle {
   xEnd: number
   yEnd: number
   id: number
-  name?: string
-  type?: TrackType
+  name?: string | undefined
+  type?: TrackType | undefined
 }
 
 export interface TrackCurve {
@@ -31,8 +31,8 @@ export interface TrackCurve {
   yEnd: number
   width: number
   id: number
-  name?: string
-  type?: TrackType
+  name?: string | undefined
+  type?: TrackType | undefined
   // the nodes the curve leaves and enters, null at a gap in a track's path
   nodeStart: number | null
   nodeEnd: number | null
@@ -45,8 +45,8 @@ export interface TrackCurve {
 export interface TrackCorner {
   path: string
   id: number
-  name?: string
-  type?: TrackType
+  name?: string | undefined
+  type?: TrackType | undefined
 }
 
 export interface Segment {
@@ -94,7 +94,7 @@ export interface Track extends InputTrack {
   indexSequence: number[]
   path: Segment[]
   width: number
-  haplotypeShare?: HaplotypeShare
+  haplotypeShare?: HaplotypeShare | undefined
 }
 
 // Loose input shape passed to layoutTubeMap. Its passes (generateNodeWidth →
@@ -116,7 +116,7 @@ export interface Node extends InputNode {
   sequenceLength: number
   width: number
   pixelWidth: number
-  order?: number
+  order?: number | undefined
   y: number
   contentHeight: number
   x: number
@@ -141,8 +141,8 @@ export interface SegmentAssignment {
   trackID: number
   segmentID: number
   compareToFromSame: SegmentAssignment | null
-  idealLane?: number
-  idealY?: number | null
+  idealLane?: number | undefined
+  idealY?: number | null | undefined
   lane?: number
 }
 
@@ -150,7 +150,7 @@ export interface NodeAssignment {
   type: 'single' | 'multiple'
   node: number | null
   tracks: SegmentAssignment[]
-  idealLane?: number
+  idealLane?: number | undefined
 }
 
 // Drawing instructions from one layout, in layout coordinates.

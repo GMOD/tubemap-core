@@ -108,7 +108,7 @@ export type Facet = ReadFacet | HaplotypeFacet
 export interface PlacementOptions {
   mappingQualityCutoff?: number
   focusReadNames?: string[] | null
-  facet?: Facet
+  facet?: Facet | undefined
 }
 
 export interface FacetOptions extends PlacementOptions {
@@ -2439,8 +2439,8 @@ function getVerticalAdjustmentCost(
 }
 
 function compareByIdealLane(
-  a: { idealLane?: number },
-  b: { idealLane?: number },
+  a: { idealLane?: number | undefined },
+  b: { idealLane?: number | undefined },
 ): number {
   if (a.idealLane !== undefined) {
     if (b.idealLane !== undefined) {
