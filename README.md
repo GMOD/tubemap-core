@@ -216,3 +216,4 @@ copyright in MIT license form
 - MemPanG tube map https://github.com/cmdcolin/sequenceTubeMap
 - JBrowse 2 graphgenomeviewer plugin
   https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer
+- ggtubemap, tube maps as ggplot2 layers in R https://github.com/GMOD/ggtubemap
