@@ -202,6 +202,22 @@ rewrites the goldens in `test/layout-golden`.
   needs no stored token
 - A GitHub release follows, its notes taken from `CHANGELOG.md`
 
+## See also
+
+- [jbrowse-plugin-graphgenomeviewer](https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer) -
+  JBrowse 2 plugin that browses these graphs by locus
+- [sequenceTubeMap, MemPanG26 edition](https://github.com/cmdcolin/sequenceTubeMap) -
+  our fork of the tube map app
+- [ggtubemap](https://github.com/GMOD/ggtubemap) - tube maps as ggplot2 layers
+- [@jbrowse/bandage-core](https://github.com/GMOD/bandage-core) - Bandage layout
+  and drawing engine
+- [@gmod/gbz-base](https://github.com/GMOD/gbz-base-js) - range-request reader
+  for `.gbz.db` databases
+
+Tutorials on [jbrowse.org](https://jbrowse.org/jb2/docs/tutorials/)
+
+- [HPRC part 1: graph alleles and haplotypes](https://jbrowse.org/jb2/docs/tutorials/pangenome_hprc/)
+
 ## License
 
 MIT
