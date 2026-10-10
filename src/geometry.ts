@@ -1,6 +1,7 @@
 // SVG path data for the shapes a layout leaves as coordinates: a curve's
 // ribbon and a node's rounded outline. Both are strings so the same geometry
-// draws as an SVG `d` attribute or, through Path2D, on a canvas.
+// draws as an SVG `d` attribute or, through Path2D, on a canvas, and
+// flattenPath turns either into points for a renderer that fills polygons.
 import type { Node, TrackCurve, TrackType } from './types.ts'
 
 function groupBy<T, K>(items: readonly T[], key: (item: T) => K): Map<K, T[]> {
@@ -145,6 +146,70 @@ export function curvePaths(
   return [...groupedCurves.values()]
     .sort((a, b) => compareTuples(curveEnds(a[0]!), curveEnds(b[0]!)))
     .flat()
+}
+
+// The outline that path data from curvePaths, nodeOutlinePath or a corner
+// traces, as points, for a renderer that fills polygons rather than paths.
+// Each Bézier becomes `steps` straight pieces; the closing Z adds no point.
+export function flattenPath(d: string, steps = 16): [number, number][] {
+  const tokens = d.match(/[A-Za-z]|-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/g) ?? []
+  const points: [number, number][] = []
+  let x = 0
+  let y = 0
+  let i = 0
+  const num = () => Number(tokens[i++])
+  while (i < tokens.length) {
+    const command = tokens[i++]
+    if (command === 'M' || command === 'L') {
+      x = num()
+      y = num()
+      points.push([x, y])
+    } else if (command === 'H') {
+      x = num()
+      points.push([x, y])
+    } else if (command === 'V') {
+      y = num()
+      points.push([x, y])
+    } else if (command === 'C') {
+      const [x1, y1, x2, y2, x3, y3] = [
+        num(),
+        num(),
+        num(),
+        num(),
+        num(),
+        num(),
+      ]
+      for (let s = 1; s <= steps; s += 1) {
+        const t = s / steps
+        const u = 1 - t
+        const a = u * u * u
+        const b = 3 * u * u * t
+        const c = 3 * u * t * t
+        const e = t * t * t
+        points.push([
+          a * x + b * x1 + c * x2 + e * x3,
+          a * y + b * y1 + c * y2 + e * y3,
+        ])
+      }
+      x = x3
+      y = y3
+    } else if (command === 'Q') {
+      const [x1, y1, x2, y2] = [num(), num(), num(), num()]
+      for (let s = 1; s <= steps; s += 1) {
+        const t = s / steps
+        const u = 1 - t
+        points.push([
+          u * u * x + 2 * u * t * x1 + t * t * x2,
+          u * u * y + 2 * u * t * y1 + t * t * y2,
+        ])
+      }
+      x = x2
+      y = y2
+    } else if (command !== 'Z') {
+      throw new Error(`flattenPath: unsupported path command ${command}`)
+    }
+  }
+  return points
 }
 
 // A node's outline: a rounded box 9 units outside the node's x extent and its

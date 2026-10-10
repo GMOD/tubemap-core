@@ -108,6 +108,16 @@ Reads go in the third argument and draw the same way: their shapes have
 `type: 'read'`, so call `curvePaths(layout.shapes.curves, 'read')` for their
 curves.
 
+A renderer that fills polygons rather than path data, such as matplotlib or R's
+grid, can call `flattenPath(d, steps)` on any curve, corner or node outline to
+get its points, each Bézier split into `steps` straight pieces.
+
+`readMismatches(layout)` places every read's substitutions, deletions and
+insertions: each has the read's `id`, its `x` to `xEnd` across the bases it
+covers, the `y` and `height` of the read's tube, and the substituted `seq`. An
+insertion at the read's first or last base is marked `softClip`, which
+sequenceTubeMap hides by default.
+
 ## Topology and placement
 
 `layoutTubeMap` runs two phases, also exported for running one topology under
