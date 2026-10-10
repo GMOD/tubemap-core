@@ -82,6 +82,10 @@ export interface TopologyOptions {
   charWidth?: number
   // a haplotype tube's width in layout px, where no `freq` scales it
   trackWidth?: number
+  // how `freq` widens a tube: log grows slowly, as sequenceTubeMap draws vg's
+  // frequencies; linear makes a walk standing for n haplotypes n tubes wide,
+  // so widths compare as counts
+  freqWidth?: 'log' | 'linear'
 }
 
 export const READ_FACET_FIELDS = ['read_group', 'sample_name'] as const
@@ -223,6 +227,7 @@ function configFrom(options: TopologyOptions, hasReads: boolean): LayoutConfig {
     nodeWidthOption: options.nodeWidthOption ?? 'normal',
     charWidth: options.charWidth ?? 8.401,
     trackWidth: options.trackWidth ?? 15,
+    freqWidth: options.freqWidth ?? 'log',
   }
 }
 
@@ -2533,6 +2538,16 @@ function calculateTrackWidth(state: LayoutState): void {
 
   const NARROW_WIDTH = 4
   const WIDE_WIDTH = state.config.trackWidth
+
+  if (state.config.freqWidth === 'linear') {
+    for (const track of state.tracks) {
+      track.width =
+        track.type === 'read'
+          ? NARROW_WIDTH
+          : Math.max(1, Math.round(track.freq ?? 1)) * WIDE_WIDTH
+    }
+    return
+  }
 
   for (const track of state.tracks) {
     if (track.freq !== undefined) {

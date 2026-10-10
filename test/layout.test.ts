@@ -246,6 +246,23 @@ describe('layoutTubeMap', () => {
     expectFiniteGeometry(rare)
   })
 
+  // a walk standing for n identical haplotypes is n tubes wide, so two
+  // bundles' widths compare as their counts
+  it('widens a tube by its freq linearly when asked', () => {
+    const bundled = layoutTubeMap(
+      nodes,
+      [
+        { ...tracks[0]!, freq: 1 },
+        { ...tracks[1]!, freq: 6 },
+      ],
+      [],
+      { freqWidth: 'linear', trackWidth: 4 },
+    )!
+    const width = (id: number) => bundled.tracks.find(t => t.id === id)?.width
+    expect([width(tracks[0]!.id), width(tracks[1]!.id)]).toEqual([4, 24])
+    expectFiniteGeometry(bundled)
+  })
+
   it('leaves a node no track reaches unsized when placing reads', () => {
     const layout = layoutTubeMap(
       [...nodes, { name: 'apart', seq: 'TTTT' }],
