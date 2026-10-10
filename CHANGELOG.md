@@ -1,3 +1,9 @@
+## [0.2.5](https://github.com/GMOD/tubemap-core/compare/v0.2.4...v0.2.5) (2026-10-10)
+
+### Other Changes
+
+- Add flattenPath and readMismatches for renderers outside the browser ([ba4f215](https://github.com/GMOD/tubemap-core/commit/ba4f2152baa58c8ea8f982899e72b547f85fdcae))
+
 ## [0.2.4](https://github.com/GMOD/tubemap-core/compare/v0.2.3...v0.2.4) (2026-10-10)
 
 ### Other Changes
