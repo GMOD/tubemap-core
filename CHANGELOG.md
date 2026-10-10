@@ -1,3 +1,9 @@
+## [0.2.3](https://github.com/GMOD/tubemap-core/compare/v0.2.2...v0.2.3) (2026-10-10)
+
+### Other Changes
+
+- A steep curve's outer edge turns late and its inner edge early, so it keeps its width ([93a9b84](https://github.com/GMOD/tubemap-core/commit/93a9b84255334b68777655f8b2ac104faadeb38d))
+
 ## [0.2.2](https://github.com/GMOD/tubemap-core/compare/v0.2.1...v0.2.2) (2026-10-10)
 
 ### Other Changes
