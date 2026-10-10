@@ -1,3 +1,9 @@
+## [0.2.2](https://github.com/GMOD/tubemap-core/compare/v0.2.1...v0.2.2) (2026-10-10)
+
+### Other Changes
+
+- 'linear' widens a tube by its freq in whole tubes ([518f125](https://github.com/GMOD/tubemap-core/commit/518f1251cd49321c99fba672b6003c335d102847))
+
 ## [0.2.1](https://github.com/GMOD/tubemap-core/compare/v0.2.0...v0.2.1) (2026-10-05)
 
 ### Other Changes
