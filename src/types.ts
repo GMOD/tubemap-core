@@ -39,6 +39,8 @@ export interface TrackCurve {
   // the order slots it leaves and enters
   orderStart: number
   orderEnd: number
+  // a curve of track 0, the reference, which a steep gap gives its width first
+  reference?: boolean
   path?: string
 }
 

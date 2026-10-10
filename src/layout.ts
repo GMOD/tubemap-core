@@ -2654,6 +2654,8 @@ function generateSVGShapesFromPath(state: LayoutState): void {
     }
   })
 
+  const reference = state.tracks[0]
+
   // Helps generation of verticalRectangles, correct increments of extraRight and extraLeft
   state.tracks.sort(compareTrackByInitialOrdering)
 
@@ -2711,6 +2713,7 @@ function generateSVGShapesFromPath(state: LayoutState): void {
             nodeEnd: track.path[i]!.node,
             orderStart: track.path[i - 1]!.order,
             orderEnd: track.path[i]!.order,
+            ...(track === reference ? { reference: true } : {}),
           })
           xStart = xEnd
           yStart = yEnd
@@ -2732,6 +2735,7 @@ function generateSVGShapesFromPath(state: LayoutState): void {
             nodeEnd: track.path[i]!.node,
             orderStart: track.path[i - 1]!.order,
             orderEnd: track.path[i]!.order,
+            ...(track === reference ? { reference: true } : {}),
           })
           xStart = xEnd
           yStart = yEnd

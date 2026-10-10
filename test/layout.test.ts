@@ -484,6 +484,46 @@ describe('layoutTubeMap', () => {
     expect(Math.abs(flatTop! - flatBottom!)).toBeLessThan(2)
   })
 
+  const steepPair = (yEnd: number): TrackCurve[] =>
+    [
+      { width: 4, reference: true },
+      { width: 60, reference: false },
+    ].map(({ width, reference }, id) => ({
+      xStart: 0,
+      yStart: id * 4,
+      xEnd: 400,
+      yEnd: yEnd + id * 4,
+      width,
+      id,
+      type: 'haplotype',
+      nodeStart: 1,
+      nodeEnd: 2,
+      orderStart: 0,
+      orderEnd: 1,
+      ...(reference ? { reference } : {}),
+    }))
+  const spreadOf = (c: TrackCurve) => {
+    const [top, bottom] = controlsOf(c.path!)
+    return Math.abs(top! - bottom!) / Math.abs(c.xEnd - c.xStart)
+  }
+
+  it('judges steepness at the width a squeezed gap draws at', () => {
+    const [, wide] = curvePaths(steepPair(200), 'haplotype')
+    const [, squeezed] = curvePaths(steepPair(200), 'haplotype', {
+      gapWidth: 24,
+    })
+    expect(spreadOf(squeezed!)).toBeGreaterThan(2 * spreadOf(wide!))
+  })
+
+  it('a steep gap gives the reference its spread before a wide tube beside it', () => {
+    const [reference, wide] = curvePaths(steepPair(200), 'haplotype', {
+      gapWidth: 24,
+    })
+    // a 4 px tube through a 24 px gap, steep enough to want all of its 4 px
+    expect(spreadOf(reference!) * 0.75 * 24).toBeCloseTo(4, 0)
+    expect(spreadOf(reference!) + spreadOf(wide!)).toBeCloseTo(0.8)
+  })
+
   it('tubes changing lanes together share each edge between neighbours', () => {
     const stacked = [0, 10, 20].map((y, id): TrackCurve => ({
       xStart: 0,

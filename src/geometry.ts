@@ -62,11 +62,13 @@ const MAX_SPREAD = 0.8
 // thick across as its width times the cosine of its slope, which on a steep
 // lane change is a hairline; with its outer edge turning late and its inner
 // edge early, its steep stretch keeps its width, or as much as the gap allows.
-// A shallow curve needs none. Groups of more than five keep at least
-// sequenceTubeMap's 0.4 in all, which stops their curves crossing at one x.
-function spreads(group: readonly TrackCurve[]) {
+// A shallow curve needs none. The reference takes what it needs first, so its
+// line stays legible where a wide tube shares its gap. Groups of more than five
+// keep at least sequenceTubeMap's 0.4 in all, which stops their curves
+// crossing at one x.
+function spreads(group: readonly TrackCurve[], gapWidth: number) {
   const first = group[0]!
-  const span = Math.abs(first.xEnd - first.xStart)
+  const span = Math.min(Math.abs(first.xEnd - first.xStart), gapWidth)
   if (span === 0) {
     return group.map(() => 0)
   }
@@ -78,9 +80,23 @@ function spreads(group: readonly TrackCurve[]) {
       Math.min(c.width, MAX_SPREAD * STEEP_SHARE * span)
     return Math.max(floor, across / (STEEP_SHARE * span))
   })
-  const total = wanted.reduce((sum, w) => sum + w, 0)
-  const scale = total > MAX_SPREAD ? MAX_SPREAD / total : 1
-  return wanted.map(w => w * scale)
+  const sum = (pick: (c: TrackCurve) => boolean) =>
+    wanted.reduce((total, w, i) => total + (pick(group[i]!) ? w : 0), 0)
+  const reference = sum(c => c.reference === true)
+  const others = sum(c => c.reference !== true)
+  const referenceScale = reference > MAX_SPREAD ? MAX_SPREAD / reference : 1
+  const room = MAX_SPREAD - reference * referenceScale
+  const othersScale = others > room ? room / others : 1
+  return wanted.map(
+    (w, i) => w * (group[i]!.reference ? referenceScale : othersScale),
+  )
+}
+
+export interface CurvePathOptions {
+  // The most px a gap between columns draws across, where the drawing squeezes
+  // the layout's x, as a reference axis does; a curve's steepness is judged at
+  // that width
+  gapWidth?: number
 }
 
 // The curves of one track type in draw order, each with its `path` set. Curves
@@ -91,6 +107,7 @@ function spreads(group: readonly TrackCurve[]) {
 export function curvePaths(
   curves: readonly TrackCurve[],
   type: TrackType | undefined,
+  { gapWidth = Infinity }: CurvePathOptions = {},
 ): TrackCurve[] {
   const groupedCurves = groupBy(
     curves.filter(curve => curve.type === type),
@@ -99,7 +116,7 @@ export function curvePaths(
 
   groupedCurves.forEach(curveGroup => {
     curveGroup.sort(compareCurvesByXYStartValue)
-    const spread = spreads(curveGroup)
+    const spread = spreads(curveGroup, gapWidth)
     // share of the gap at which a boundary between the group's tubes turns,
     // for a curve that rises; one that falls turns at its complement
     let adjustValue = 0.5 - spread.reduce((sum, s) => sum + s, 0) / 2

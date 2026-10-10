@@ -73,7 +73,10 @@ layout.shapes.rectangles[0]
 
 `curvePaths(curves, type)` fills in each curve's SVG `path`, and
 `nodeOutlinePath(node)` returns a node's box as path data (`new Path2D(d)` on a
-canvas). Together they are enough to draw the example as SVG:
+canvas). A drawing that squeezes the layout's x between columns passes
+`curvePaths(curves, type, { gapWidth })`, the most px a gap draws across, so
+steep curves keep their width. Together they are enough to draw the example as
+SVG:
 
 ```ts
 import { curvePaths, nodeOutlinePath } from '@jbrowse/tubemap-core'
