@@ -428,6 +428,10 @@ describe('layoutTubeMap', () => {
     expect(Math.max(...read.map(r => r.xEnd))).toBeLessThan(snp!.x + 9)
   })
 
+  // the x of each edge's control points, top edge first
+  const controlsOf = (path: string) =>
+    [...path.matchAll(/C ([\d.-]+) /g)].map(m => Number(m[1]))
+
   it('fans out only the curves that share both ends', () => {
     // six tracks leaving a gap for another gap, each in its own order slot
     const gapToGap = (order: number): TrackCurve => ({
@@ -445,8 +449,60 @@ describe('layoutTubeMap', () => {
     })
     const curves = curvePaths([5, 4, 3, 2, 1, 0].map(gapToGap), 'haplotype')
     expect(curves.map(c => c.orderStart)).toEqual([0, 1, 2, 3, 4, 5])
-    for (const { xStart, path } of curves) {
-      expect(path).toContain(`C ${xStart + 20} 0 ${xStart + 20} 20`)
+    const shapes = new Set(
+      curves.map(({ xStart, path }) =>
+        controlsOf(path!)
+          .map(x => (x - xStart).toFixed(6))
+          .join(),
+      ),
+    )
+    expect(shapes.size).toBe(1)
+  })
+
+  it('a steep wide curve turns its outer edge late and its inner edge early', () => {
+    const steep = (width: number, yEnd: number): TrackCurve => ({
+      xStart: 0,
+      yStart: 0,
+      xEnd: 20,
+      yEnd,
+      width,
+      id: 0,
+      type: 'haplotype',
+      nodeStart: 1,
+      nodeEnd: 2,
+      orderStart: 0,
+      orderEnd: 1,
+    })
+    const [falling] = curvePaths([steep(10, 200)], 'haplotype')
+    const [top, bottom] = controlsOf(falling!.path!)
+    expect(top! - bottom!).toBeGreaterThan(8)
+    const [rising] = curvePaths([steep(10, -200)], 'haplotype')
+    const [riseTop, riseBottom] = controlsOf(rising!.path!)
+    expect(riseBottom! - riseTop!).toBeGreaterThan(8)
+    const [shallow] = curvePaths([steep(10, 2)], 'haplotype')
+    const [flatTop, flatBottom] = controlsOf(shallow!.path!)
+    expect(Math.abs(flatTop! - flatBottom!)).toBeLessThan(2)
+  })
+
+  it('tubes changing lanes together share each edge between neighbours', () => {
+    const stacked = [0, 10, 20].map((y, id): TrackCurve => ({
+      xStart: 0,
+      yStart: y,
+      xEnd: 20,
+      yEnd: y + 200,
+      width: 10,
+      id,
+      type: 'haplotype',
+      nodeStart: 1,
+      nodeEnd: 2,
+      orderStart: 0,
+      orderEnd: 1,
+    }))
+    const curves = curvePaths(stacked, 'haplotype')
+    for (let i = 1; i < curves.length; i++) {
+      expect(controlsOf(curves[i]!.path!)[0]).toBeCloseTo(
+        controlsOf(curves[i - 1]!.path!)[1]!,
+      )
     }
   })
 

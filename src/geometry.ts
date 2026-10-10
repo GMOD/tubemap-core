@@ -50,10 +50,44 @@ function compareTuples(a: readonly number[], b: readonly number[]): number {
   return 0
 }
 
+// Where a cubic with both control points at one x is steepest, it is 3/4 of
+// the way from the ends' mean x to that control x
+const STEEP_SHARE = 0.75
+// The most of a gap a group's steep stretch may spread over, so its edges keep
+// some of the turn
+const MAX_SPREAD = 0.8
+
+// How far apart, as shares of the gap, each curve of a group puts its top and
+// bottom edges' control points. A ribbon whose edges turn at one x is only as
+// thick across as its width times the cosine of its slope, which on a steep
+// lane change is a hairline; with its outer edge turning late and its inner
+// edge early, its steep stretch keeps its width, or as much as the gap allows.
+// A shallow curve needs none. Groups of more than five keep at least
+// sequenceTubeMap's 0.4 in all, which stops their curves crossing at one x.
+function spreads(group: readonly TrackCurve[]) {
+  const first = group[0]!
+  const span = Math.abs(first.xEnd - first.xStart)
+  if (span === 0) {
+    return group.map(() => 0)
+  }
+  const floor = group.length > 5 ? 0.4 / group.length : 0
+  const wanted = group.map(c => {
+    const rise = Math.abs(c.yEnd - c.yStart)
+    const across =
+      (rise / Math.hypot(rise, span)) *
+      Math.min(c.width, MAX_SPREAD * STEEP_SHARE * span)
+    return Math.max(floor, across / (STEEP_SHARE * span))
+  })
+  const total = wanted.reduce((sum, w) => sum + w, 0)
+  const scale = total > MAX_SPREAD ? MAX_SPREAD / total : 1
+  return wanted.map(w => w * scale)
+}
+
 // The curves of one track type in draw order, each with its `path` set. Curves
 // between the same pair of nodes, or gaps, form a group whose control points
-// fan out, so a bundle of tracks changing lanes together stays parallel rather
-// than crossing at one x.
+// fan out top to bottom, so a bundle of tracks changing lanes together stays
+// parallel rather than crossing at one x, and each curve's bottom edge is the
+// next one's top edge.
 export function curvePaths(
   curves: readonly TrackCurve[],
   type: TrackType | undefined,
@@ -64,33 +98,21 @@ export function curvePaths(
   )
 
   groupedCurves.forEach(curveGroup => {
-    // Control point adjustment range: 30% to 70% of the original x values
-    let adjustValue = 0.3
-    let adjustIncrement = 0.4 / curveGroup.length
-
-    // Ignore Beziar Curve skewing when a group is not too big
-    if (curveGroup.length <= 5) {
-      adjustValue = 0.5
-      adjustIncrement = 0
-    }
-
     curveGroup.sort(compareCurvesByXYStartValue)
+    const spread = spreads(curveGroup)
+    // share of the gap at which a boundary between the group's tubes turns,
+    // for a curve that rises; one that falls turns at its complement
+    let adjustValue = 0.5 - spread.reduce((sum, s) => sum + s, 0) / 2
 
-    curveGroup.forEach(curve => {
-      let xAdjusted: number
-      // NextAdjusted is used to try to draw a parallel curve on the way back
-      let xNextAdjusted: number
-      if (curve.yStart < curve.yEnd) {
-        xAdjusted =
-          curve.xStart + (curve.xEnd - curve.xStart) * (1 - adjustValue)
-        adjustValue += adjustIncrement
-        xNextAdjusted =
-          curve.xStart + (curve.xEnd - curve.xStart) * (1 - adjustValue)
-      } else {
-        xAdjusted = curve.xStart + (curve.xEnd - curve.xStart) * adjustValue
-        adjustValue += adjustIncrement
-        xNextAdjusted = curve.xStart + (curve.xEnd - curve.xStart) * adjustValue
-      }
+    curveGroup.forEach((curve, i) => {
+      const at = (share: number) =>
+        curve.xStart +
+        (curve.xEnd - curve.xStart) *
+          (curve.yStart < curve.yEnd ? 1 - share : share)
+      const xAdjusted = at(adjustValue)
+      adjustValue += spread[i]!
+      // the bottom edge, on the way back, parallel to the next curve's top
+      const xNextAdjusted = at(adjustValue)
       let d = `M ${curve.xStart} ${curve.yStart}`
       d += ` C ${xAdjusted} ${curve.yStart} ${xAdjusted} ${curve.yEnd} ${curve.xEnd} ${curve.yEnd}`
       d += ` V ${curve.yEnd + curve.width}`
