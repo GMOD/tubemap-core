@@ -1,3 +1,9 @@
+## [0.2.4](https://github.com/GMOD/tubemap-core/compare/v0.2.3...v0.2.4) (2026-10-10)
+
+### Other Changes
+
+- CurvePaths judges steepness at the width a squeezed gap draws, and gives the reference its spread first ([a28d63d](https://github.com/GMOD/tubemap-core/commit/a28d63dfb0efd5ece04be0d73c419a2694faf1c1))
+
 ## [0.2.3](https://github.com/GMOD/tubemap-core/compare/v0.2.2...v0.2.3) (2026-10-10)
 
 ### Other Changes
