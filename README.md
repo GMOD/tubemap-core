@@ -46,7 +46,7 @@ no further math.
 | `reads`                          | The placed reads alone                                                                                                                                                                              |
 | `bounds`                         | `{ minX, maxX, minY, maxY }` around everything drawn; size the SVG `viewBox` from it                                                                                                                |
 | `nodeMap`                        | Node name to index in `nodes`                                                                                                                                                                       |
-| `maxOrder`, `trackForRuler`      | The count of horizontal order slots, and the name of the track that carries coordinates for a ruler                                                                                                 |
+| `maxOrder`, `trackForRuler`      | The count of horizontal order slots, and the name of the track a ruler takes coordinates from                                                                                                       |
 | `coarsened`, `coarsenedEdgeMeta` | What each banded layer drew and the label of every band; both are empty without `layers` or `coarsenedReadView`                                                                                     |
 
 For the example above:
@@ -64,7 +64,7 @@ layout.shapes.rectangles[0]
 //   type: 'haplotype' }
 ```
 
-- Shapes carry no color: each names its track's `id`, and the caller colors it
+- Shapes have no color: each names its track's `id`, and the caller colors it
   from the matching track in `layout.tracks`, so a recolor needs no new layout
 - `layout.nodes` has a hole at index 0: use `forEach` or `filter`, not
   `for...of` or `find`
@@ -224,8 +224,8 @@ MIT
 
 ## Footnote
 
-Derived from https://github.com/vgteam/sequenceTubeMap and carries original
-copyright in MIT license form
+Derived from https://github.com/vgteam/sequenceTubeMap, keeping its original MIT
+copyright notice
 
 ## Used in
 
