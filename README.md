@@ -71,12 +71,14 @@ layout.shapes.rectangles[0]
 
 ### Drawing the layout
 
-`curvePaths(curves, type)` fills in each curve's SVG `path`, and
-`nodeOutlinePath(node)` returns a node's box as path data (`new Path2D(d)` on a
-canvas). A drawing that squeezes the layout's x between columns passes
-`curvePaths(curves, type, { gapWidth })`, the most px a gap draws across, so
-steep curves keep their width. Together they are enough to draw the example as
-SVG:
+- `curvePaths(curves, type)` fills in each curve's SVG `path`
+- `nodeOutlinePath(node)` returns a node's box as path data (`new Path2D(d)` on
+  a canvas)
+- A drawing that squeezes the layout's x between columns passes
+  `curvePaths(curves, type, { gapWidth })`, the most px a gap draws across, so
+  steep curves keep their width
+
+Together they draw the example as SVG:
 
 ```ts
 import { curvePaths, nodeOutlinePath } from '@jbrowse/tubemap-core'
@@ -104,19 +106,18 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg"
 
 ![The two paths: the reference runs straight and the alternate dips through node 3](docs/example.png)
 
-Reads go in the third argument and draw the same way: their shapes have
+Reads go in the third argument and draw the same way. Their shapes have
 `type: 'read'`, so call `curvePaths(layout.shapes.curves, 'read')` for their
 curves.
 
-A renderer that fills polygons rather than path data, such as matplotlib or R's
-grid, can call `flattenPath(d, steps)` on any curve, corner or node outline to
-get its points, each Bézier split into `steps` straight pieces.
-
-`readMismatches(layout)` places every read's substitutions, deletions and
-insertions: each has the read's `id`, its `x` to `xEnd` across the bases it
-covers, the `y` and `height` of the read's tube, and the substituted `seq`. An
-insertion at the read's first or last base is marked `softClip`, which
-sequenceTubeMap hides by default.
+- `flattenPath(d, steps)` turns any curve, corner or node outline into points,
+  each Bézier split into `steps` straight pieces. Use it for renderers that fill
+  polygons, such as matplotlib or R's grid.
+- `readMismatches(layout)` places every read's substitutions, deletions and
+  insertions. Each has the read's `id`, its `x` to `xEnd`, the `y` and `height`
+  of the read's tube, and the substituted `seq`.
+- An insertion at the read's first or last base is marked `softClip`.
+  sequenceTubeMap hides these by default.
 
 ## Topology and placement
 
@@ -159,11 +160,13 @@ const { panels, bounds } = placeFacets(topology, { facetBy: 'sample_name' })
 - `charWidth`: px per base under `normal` (8.401)
 - `trackWidth`: tube width (15)
 - `mergeNodes`, `showReads` (true); `coarsenedReadView`, `ignoreStrand` (false)
-- `layers`: the track sets placement draws, each with an optional stat.
-  `{ data: 'haplotypes', stat: 'coarsen' }` bands every haplotype but the
-  reference, one band per edge, and `{ data: 'reads', stat: 'coarsen' }` does
-  the same for the reads, which stack under the haplotypes either way. Unset,
-  `coarsenedReadView` bands the reads, or the haplotypes when no reads load
+- `layers`: the track sets placement draws, each with an optional stat
+  - `{ data: 'haplotypes', stat: 'coarsen' }` bands every haplotype but the
+    reference, one band per edge
+  - `{ data: 'reads', stat: 'coarsen' }` does the same for the reads
+  - Reads stack under the haplotypes either way
+  - Unset, `coarsenedReadView` bands the reads, or the haplotypes when no reads
+    load
 - `mappingQualityCutoff`, `focusReadNames`: read filters, the only placement
   options; the rest belong to the topology
 
@@ -183,13 +186,14 @@ pnpm test --run
 pnpm test:pack
 ```
 
-`test/layout.golden.test.ts` pins every shape and node position for the
-sequenceTubeMap demo examples and a few bundled graphs, under each option that
-picks a different layout path. Its inputs in `test/fixtures` are the nodes,
-tracks and reads the viewer hands the layout, and
-`scripts/dump-viewer-fixtures.ts` regenerates them from a viewer checkout. After
-an intended layout change, `pnpm test --run -u test/layout.golden.test.ts`
-rewrites the goldens in `test/layout-golden`.
+- `test/layout.golden.test.ts` pins every shape and node position for the
+  sequenceTubeMap demo examples and a few bundled graphs, under each option that
+  picks a different layout path
+- `scripts/dump-viewer-fixtures.ts` regenerates the inputs in `test/fixtures`
+  from a viewer checkout
+- After an intended layout change,
+  `pnpm test --run -u test/layout.golden.test.ts` rewrites the goldens in
+  `test/layout-golden`
 
 `CHANGELOG.md` lists the changes in each version.
 
