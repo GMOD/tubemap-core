@@ -1,3 +1,15 @@
+## [1.0.0](https://github.com/GMOD/tubemap-core/compare/v0.2.5...v1.0.0) (2026-10-11)
+
+### Documentation
+
+- Plainer README wording ([bb53568](https://github.com/GMOD/tubemap-core/commit/bb53568fd98061fc1d422867ae38c004b7218efa))
+- Break up README walls of text ([c39912a](https://github.com/GMOD/tubemap-core/commit/c39912a05d50abfdb7be00c3abce73ae3ab56e77))
+
+### Other Changes
+
+- README lists ggtubemap among the users ([5c08abd](https://github.com/GMOD/tubemap-core/commit/5c08abd1323f627e403c07fb71374108e14953cf))
+- README's see-also lists the graph repos and pangenome tutorials ([f8a80dc](https://github.com/GMOD/tubemap-core/commit/f8a80dcb45db4e7d8ad5dca67911aef3c4a778c7))
+
 ## [0.2.5](https://github.com/GMOD/tubemap-core/compare/v0.2.4...v0.2.5) (2026-10-10)
 
 ### Other Changes
