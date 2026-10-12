@@ -229,7 +229,9 @@ MIT
 ## Footnote
 
 Derived from https://github.com/vgteam/sequenceTubeMap, keeping its original MIT
-copyright notice
+copyright notice.
+[docs/differences-from-upstream.md](docs/differences-from-upstream.md) lists
+what this package adds and changes.
 
 ## Used in
 
