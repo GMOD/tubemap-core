@@ -650,9 +650,10 @@ export function placeFacets(
       reads,
       nextBandId === undefined ? undefined : { [banded]: nextBandId },
     )
-    const bandIds = [...layout.coarsenedEdgeMeta.keys()]
-    if (bandIds.length > 0) {
-      nextBandId = Math.max(...bandIds) + 1
+    for (const id of layout.coarsenedEdgeMeta.keys()) {
+      if (nextBandId === undefined || id >= nextBandId) {
+        nextBandId = id + 1
+      }
     }
     const offsetY =
       i === 0 ? 0 : bottom + FACET_GAP + FACET_LABEL_HEIGHT - layout.bounds.minY
@@ -1291,16 +1292,16 @@ function compareReadOutgoingSegmentsByGoingTo(
   let previousValidYB: number | undefined
   let lastPathIndexA = readA.path.length - 1
   let lastPathIndexB = readB.path.length - 1
-  while (!previousValidYA && lastPathIndexA >= 0) {
+  while (previousValidYA === undefined && lastPathIndexA >= 0) {
     previousValidYA = readA.path[lastPathIndexA]?.y
     lastPathIndexA -= 1
   }
-  while (!previousValidYB && lastPathIndexB >= 0) {
+  while (previousValidYB === undefined && lastPathIndexB >= 0) {
     previousValidYB = readB.path[lastPathIndexB]?.y
     lastPathIndexB -= 1
   }
 
-  if (previousValidYA && previousValidYB) {
+  if (previousValidYA !== undefined && previousValidYB !== undefined) {
     return previousValidYA - previousValidYB
   }
 
