@@ -2153,6 +2153,19 @@ function generateNodeXCoords(state: LayoutState): void {
   })
 }
 
+// A lane change rising or falling this many px or less keeps sequenceTubeMap's
+// slope; one rising further turns steeper
+const RISE_KNEE = 35
+
+// The extra space, in units of 10 px, that a gap takes for a track rising or
+// falling `rise` px across it. Past RISE_KNEE it grows with the square root of
+// the rise, so a long jump steepens its curve more than it widens the column.
+function riseExtra(rise: number): number {
+  return rise <= RISE_KNEE
+    ? rise / 17.5
+    : (RISE_KNEE / 17.5) * Math.sqrt(rise / RISE_KNEE)
+}
+
 // calculates additional horizontal space needed between two nodes
 // two neighboring nodes have to be moved further apart if there is a lot going on in between them
 // -> edges turning to vertical orientation should not overlap
@@ -2181,11 +2194,9 @@ function calculateExtraSpace(state: LayoutState): number[] {
           rightSideEdges[seg.order] = rightSideEdges[seg.order]! + 1
         }
       } else {
-        // Track is going to a different node; account for space needed to limit rise/fall angle
-        const yDifference = Math.abs((seg.y ?? 0) - (prevSeg.y ?? 0))
         // TODO: Extra space should also be accounted when there are too many tracks curving at the nodes
         fallAngleAdjustment[seg.order] = Math.max(
-          yDifference / 17.5,
+          riseExtra(Math.abs((seg.y ?? 0) - (prevSeg.y ?? 0))),
           fallAngleAdjustment[seg.order]!,
         )
       }
