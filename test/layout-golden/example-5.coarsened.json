@@ -1,5 +1,5 @@
 {
-  "bounds": {"minX":20,"maxX":1621.3542491081143,"minY":10,"maxY":280.67257585737013},
+  "bounds": {"minX":0,"maxX":1621.3542491081143,"minY":10,"maxY":280.67257585737013},
   "maxOrder": 21,
   "trackForRuler": "Track A",
   "coarsened": {"unit":"haplotype","total":4,"reverse":false},

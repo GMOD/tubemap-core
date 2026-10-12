@@ -1,5 +1,5 @@
 {
-  "bounds": {"minX":20,"maxX":4134.0614360201935,"minY":-15,"maxY":212},
+  "bounds": {"minX":0,"maxX":4134.0614360201935,"minY":-15,"maxY":212},
   "maxOrder": 18,
   "trackForRuler": null,
   "coarsened": {"unit":"read","total":2,"reverse":false},

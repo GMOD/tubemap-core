@@ -53,7 +53,7 @@ For the example above:
 
 ```ts
 layout.bounds
-// { minX: 20, maxX: 185.57, minY: 10, maxY: 85 }
+// { minX: 0, maxX: 185.57, minY: 10, maxY: 85 }
 
 layout.nodes[1]
 // { name: '1', seq: 'ACGT', x: 20, y: 20, pixelWidth: 17, contentHeight: 30,

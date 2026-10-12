@@ -1,5 +1,5 @@
 {
-  "bounds": {"minX":60,"maxX":440.57142857142856,"minY":10,"maxY":185},
+  "bounds": {"minX":1,"maxX":478.57142857142856,"minY":10,"maxY":185},
   "maxOrder": 2,
   "trackForRuler": "GRCh38.chr14",
   "coarsened": null,

@@ -1,5 +1,5 @@
 {
-  "bounds": {"minX":20,"maxX":2980.6555633839735,"minY":10,"maxY":479},
+  "bounds": {"minX":0,"maxX":2980.6555633839735,"minY":10,"maxY":479},
   "maxOrder": 15,
   "trackForRuler": "_gbwt_ref#0#17",
   "coarsened": null,

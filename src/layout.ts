@@ -1606,20 +1606,28 @@ function generateTrackIndexSequences(
   })
 }
 
-// Tracks enter and leave a node this far outside it horizontally. Note that
-// getImageDimensions() below only adds it on the right: the pannable area
-// understates the left edge of the drawing by this much.
+// Tracks enter and leave a node this far outside it horizontally
 const NODE_HORIZONTAL_SLACK = 20
 
-// get the minimum and maximum coordinates used in the image to calculate image dimensions
+// The box around every node outline and track shape. A turnaround's corners
+// reach no further out than its vertical rectangles, so the rectangles and
+// curves stand in for them.
 function getImageDimensions(state: LayoutState): void {
   // Sentinels, deliberately crossed: if nothing below runs, minZoom() and
   // alignSVG() detect the empty content rather than computing a negative scale.
   const bounds: ImageBounds = { minX: 99, maxX: -99, minY: 99, maxY: -99 }
 
+  const { rectangles, verticalRectangles, curves } = state.shapes
+  for (const shapes of [rectangles, verticalRectangles, curves]) {
+    for (const { xStart, xEnd } of shapes) {
+      bounds.minX = Math.min(bounds.minX, xStart, xEnd)
+      bounds.maxX = Math.max(bounds.maxX, xStart, xEnd)
+    }
+  }
+
   state.nodes.forEach((node: MaybeUnplacedNode) => {
     if (node.x !== undefined) {
-      bounds.minX = Math.min(bounds.minX, node.x)
+      bounds.minX = Math.min(bounds.minX, node.x - 9)
       bounds.maxX = Math.max(
         bounds.maxX,
         node.x + NODE_HORIZONTAL_SLACK + node.pixelWidth,
