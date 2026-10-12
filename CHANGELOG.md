@@ -1,3 +1,15 @@
+## [1.1.0](https://github.com/GMOD/tubemap-core/compare/v1.0.0...v1.1.0) (2026-10-12)
+
+### Documentation
+
+- List what this package adds and fixes relative to upstream ([e748c86](https://github.com/GMOD/tubemap-core/commit/e748c8615e956c31e926df1302cd14c1745c6e88))
+
+### Other Changes
+
+- Grow column gaps with the square root of a lane change's rise ([8be2cec](https://github.com/GMOD/tubemap-core/commit/8be2cec9bd56c2dfa17b005386e0ed2fa224ee75))
+- Treat a read segment at y 0 as placed, and find the last band id without spreading ([9724ea3](https://github.com/GMOD/tubemap-core/commit/9724ea38e1811b36744abcc920b6342f8b46c817))
+- Size bounds from the drawn shapes, so they hold tube ends and turnarounds ([617a54d](https://github.com/GMOD/tubemap-core/commit/617a54d4c253b85354724aabd622f5e3e1d5db27))
+
 ## [1.0.0](https://github.com/GMOD/tubemap-core/compare/v0.2.5...v1.0.0) (2026-10-11)
 
 ### Documentation
