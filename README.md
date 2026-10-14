@@ -117,7 +117,7 @@ Their shapes have `type: 'read'`, so call
   insertions. Each has the read's `id`, its `x` to `xEnd`, the `y` and `height`
   of the read's tube, and the substituted `seq`.
 - `readMismatches` marks an insertion at the read's first or last base
-  `softClip`. sequenceTubeMap hides these by default.
+  `softClip`, a mark that sequenceTubeMap hides by default.
 
 ## Topology and placement
 
@@ -134,7 +134,7 @@ const confident = placeTubeMap(topology, { mappingQualityCutoff: 30 })
   tracks and every primary read, and fixes each node's x from placing them all
 - `placeTubeMap` lays out the haplotypes and the reads its options keep at the
   topology's x positions, so every placement of one topology lines up
-- Read filters never move a node. A node that only filtered-out reads visit
+- Read filters never move a node, so a node that only filtered-out reads visit
   keeps its place and is drawn empty
 
 ## Facets

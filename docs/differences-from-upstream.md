@@ -51,9 +51,9 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 
 ### Output any renderer can draw
 
-- The layout uses no DOM. Upstream measured each node's label with an SVG
-  `<text>` element, and the layout multiplies one character width instead
-  (viewer `166b9b4`)
+- The layout uses no DOM, and sizes each node's label by multiplying one
+  character width where upstream measured an SVG `<text>` element (viewer
+  `166b9b4`)
 - The layout gives each shape its track's id and no color, so recoloring needs
   no new layout (`6972630`)
 - `curvePaths`, `nodeOutlinePath`, `flattenPath` and `readMismatches` turn the
