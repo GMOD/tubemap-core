@@ -2647,15 +2647,8 @@ export function clampedXCoordinateOfBaseWithinNode(
 // transforms the info in the tracks' path attribute into actual coordinates
 // and saves them in shapes.rectangles and shapes.curves
 function generateSVGShapesFromPath(state: LayoutState): void {
-  let xStart: number
-  let xEnd: number
-  let yStart: number
-  let yEnd: number
-
-  for (let i = 0; i <= state.maxOrder; i += 1) {
-    state.extraLeft.push(0)
-    state.extraRight.push(0)
-  }
+  state.extraLeft = new Array<number>(state.maxOrder + 1).fill(0)
+  state.extraRight = new Array<number>(state.maxOrder + 1).fill(0)
 
   // generate x coords where each order starts and ends
   const orderStartX: number[] = []
@@ -2663,14 +2656,10 @@ function generateSVGShapesFromPath(state: LayoutState): void {
   state.nodes.forEach((node: MaybeUnplacedNode) => {
     if (node.x !== undefined) {
       orderStartX[node.order] = node.x
-      if (orderEndX[node.order] === undefined) {
-        orderEndX[node.order] = node.x + node.pixelWidth
-      } else {
-        orderEndX[node.order] = Math.max(
-          orderEndX[node.order]!,
-          node.x + node.pixelWidth,
-        )
-      }
+      orderEndX[node.order] = Math.max(
+        orderEndX[node.order] ?? -Infinity,
+        node.x + node.pixelWidth,
+      )
     }
   })
 
@@ -2680,145 +2669,82 @@ function generateSVGShapesFromPath(state: LayoutState): void {
   state.tracks.sort(compareTrackByInitialOrdering)
 
   state.tracks.forEach(track => {
-    // start of path
-    yStart = track.path[0]!.y!
-    if (track.type !== 'read') {
-      if (track.sequence[0]!.startsWith('-')) {
-        // The track starts with an inversed node
-        xStart = orderEndX[track.path[0]!.order]! + 20
+    const { id, name, type, width, path } = track
+    const rectangle = (xStart: number, xEnd: number, yStart: number): void => {
+      state.shapes.rectangles.push({
+        xStart: Math.min(xStart, xEnd),
+        yStart,
+        xEnd: Math.max(xStart, xEnd),
+        yEnd: yStart + width - 1,
+        id,
+        name,
+        type,
+      })
+    }
+    const exitX = (seg: Segment) =>
+      seg.isForward ? orderEndX[seg.order]! : orderStartX[seg.order]!
+
+    const first = path[0]!
+    let yStart = first.y!
+    let xStart =
+      type === 'read'
+        ? getReadXStart(state, track)
+        : first.isForward
+          ? orderStartX[first.order]! - 20
+          : orderEndX[first.order]! + 20
+
+    for (let i = 1; i < path.length; i += 1) {
+      const prev = path[i - 1]!
+      const seg = path[i]!
+      if (seg.y === yStart) {
+        continue
+      }
+      const xEnd = exitX(prev)
+      if (xEnd !== xStart) {
+        rectangle(xStart, xEnd, yStart)
+      }
+      const yEnd = seg.y!
+      const step = seg.order - prev.order
+      if (step === 1 || step === -1) {
+        const xNext =
+          step === 1 ? orderStartX[seg.order]! : orderEndX[seg.order]!
+        state.shapes.curves.push({
+          xStart: step === 1 ? xEnd : xEnd + 1,
+          yStart,
+          xEnd: step === 1 ? xNext + 1 : xNext,
+          yEnd,
+          width,
+          id,
+          name,
+          type,
+          nodeStart: prev.node,
+          nodeEnd: seg.node,
+          orderStart: prev.order,
+          orderEnd: seg.order,
+          ...(track === reference ? { reference: true } : {}),
+        })
+        xStart = xNext
       } else {
-        // The track starts with a forward node
-        xStart = orderStartX[track.path[0]!.order]! - 20
+        generateTurnaround(
+          state,
+          track,
+          prev.isForward ? 1 : -1,
+          xEnd,
+          yStart,
+          yEnd,
+          seg.order,
+        )
+        xStart = xEnd
       }
-    } else {
-      xStart = getReadXStart(state, track)
+      yStart = yEnd
     }
 
-    // middle of path
-    for (let i = 0; i < track.path.length; i += 1) {
-      if (track.path[i]!.y !== yStart) {
-        if (track.path[i - 1]!.isForward) {
-          xEnd = orderEndX[track.path[i - 1]!.order]!
-        } else {
-          xEnd = orderStartX[track.path[i - 1]!.order]!
-        }
-        if (xEnd !== xStart) {
-          state.shapes.rectangles.push({
-            xStart: Math.min(xStart, xEnd),
-            yStart,
-            xEnd: Math.max(xStart, xEnd),
-            yEnd: yStart + track.width - 1,
-            // TODO: This is not actually the index of the track!
-            id: track.id,
-            name: track.name,
-            type: track.type,
-          })
-        }
-
-        if (track.path[i]!.order - 1 === track.path[i - 1]!.order) {
-          // regular forward connection
-          xStart = xEnd
-          xEnd = orderStartX[track.path[i]!.order]!
-          yEnd = track.path[i]!.y!
-          state.shapes.curves.push({
-            xStart,
-            yStart,
-            xEnd: xEnd + 1,
-            yEnd,
-            width: track.width,
-            id: track.id,
-            name: track.name,
-            type: track.type,
-            nodeStart: track.path[i - 1]!.node,
-            nodeEnd: track.path[i]!.node,
-            orderStart: track.path[i - 1]!.order,
-            orderEnd: track.path[i]!.order,
-            ...(track === reference ? { reference: true } : {}),
-          })
-          xStart = xEnd
-          yStart = yEnd
-        } else if (track.path[i]!.order + 1 === track.path[i - 1]!.order) {
-          // regular backward connection
-          xStart = xEnd
-          xEnd = orderEndX[track.path[i]!.order]!
-          yEnd = track.path[i]!.y!
-          state.shapes.curves.push({
-            xStart: xStart + 1,
-            yStart,
-            xEnd,
-            yEnd,
-            width: track.width,
-            id: track.id,
-            name: track.name,
-            type: track.type,
-            nodeStart: track.path[i - 1]!.node,
-            nodeEnd: track.path[i]!.node,
-            orderStart: track.path[i - 1]!.order,
-            orderEnd: track.path[i]!.order,
-            ...(track === reference ? { reference: true } : {}),
-          })
-          xStart = xEnd
-          yStart = yEnd
-        } else {
-          // change of direction
-          if (track.path[i - 1]!.isForward) {
-            yEnd = track.path[i]!.y!
-            generateTurnaround(
-              state,
-              1,
-              xEnd,
-              yStart,
-              yEnd,
-              track.width,
-              track.id,
-              track.path[i]!.order,
-              track.type,
-              track.name,
-            )
-            xStart = orderEndX[track.path[i]!.order]!
-            yStart = track.path[i]!.y!
-          } else {
-            yEnd = track.path[i]!.y!
-            generateTurnaround(
-              state,
-              -1,
-              xEnd,
-              yStart,
-              yEnd,
-              track.width,
-              track.id,
-              track.path[i]!.order,
-              track.type,
-              track.name,
-            )
-            xStart = orderStartX[track.path[i]!.order]!
-            yStart = track.path[i]!.y!
-          }
-        }
-      }
-    }
-
-    // ending edges
-    if (track.type !== 'read') {
-      if (!track.path[track.path.length - 1]!.isForward) {
-        // The track ends with an inversed node
-        xEnd = orderStartX[track.path[track.path.length - 1]!.order]! - 20
-      } else {
-        // The track ends with a forward node
-        xEnd = orderEndX[track.path[track.path.length - 1]!.order]! + 20
-      }
-    } else {
-      xEnd = getReadXEnd(state, track)
-    }
-    state.shapes.rectangles.push({
-      xStart: Math.min(xStart, xEnd),
-      yStart,
-      xEnd: Math.max(xStart, xEnd),
-      yEnd: yStart + track.width - 1,
-      id: track.id,
-      name: track.name,
-      type: track.type,
-    })
+    const last = path[path.length - 1]!
+    const xEnd =
+      type === 'read'
+        ? getReadXEnd(state, track)
+        : exitX(last) + (last.isForward ? 20 : -20)
+    rectangle(xStart, xEnd, yStart)
   })
 }
 
@@ -3103,15 +3029,12 @@ const MIN_BEND_WIDTH = 7
 // consumes an `extraLeft` slot. `dir` is +1 for right, -1 for left.
 function generateTurnaround(
   state: LayoutState,
+  { width: trackWidth, id: trackID, name: trackName, type }: Track,
   dir: 1 | -1,
   x: number,
   yStart: number,
   yEnd: number,
-  trackWidth: number,
-  trackID: number,
   order: number,
-  type: TrackType | undefined,
-  trackName: string | undefined,
 ): void {
   const extra = dir === 1 ? state.extraRight : state.extraLeft
   const offset = 10 * extra[order]!
