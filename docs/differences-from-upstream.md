@@ -65,7 +65,7 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 ## Layout that draws differently
 
 - Column gaps grow with the square root of a lane change's rise past 35 px, so
-  one long jump no longer sets the width of its whole column. The viewer draws
+  one long jump no longer sets its whole column's width. The viewer draws
   hprc-chrM 29% narrower as a result (`8be2cec`)
 - A steep curve keeps its tube width, because its outer edge turns late and its
   inner edge early; upstream drew a hairline (`93a9b84`)
@@ -103,8 +103,8 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 - Read comparators are symmetric (viewer `72f9e82`) and order nodeless segments
   transitively (`8cccccd`)
 - A read segment at y 0 counts as placed (`9724ea3`)
-- Read placement skips nodes without an order, so unreached nodes no longer get
-  `contentHeight` NaN (`09b6b73`)
+- Reads are placed only in nodes that have an order, so unreached nodes no
+  longer get `contentHeight` NaN (`09b6b73`)
 
 ### Crashes and bad values
 
