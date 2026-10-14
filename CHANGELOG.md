@@ -1,3 +1,32 @@
+## [2.0.0](https://github.com/GMOD/tubemap-core/compare/v1.1.0...v2.0.0) (2026-10-14)
+
+### Bug Fixes
+
+- Turning a reverse read around flips is_reverse and keeps sequenceNew absent ([ced82fe](https://github.com/GMOD/tubemap-core/commit/ced82fecba790e8a14f020f210875544f4d44537))
+- Turnaround corners carry the track name ([6a2e228](https://github.com/GMOD/tubemap-core/commit/6a2e228489cc77cee99a495c16d982469b750459))
+
+### Other Changes
+
+- Rewrite AI-writing tropes in README and docs ([c02a045](https://github.com/GMOD/tubemap-core/commit/c02a045c1c5e4db5ad4b8771559d32aa8667f335))
+- Restore claims changed by the tropes rewrite ([c4782df](https://github.com/GMOD/tubemap-core/commit/c4782dfb55fff3df33ad43efbafbe37a1a2efc93))
+- Fold short verdict sentences into their neighbours ([d78aea0](https://github.com/GMOD/tubemap-core/commit/d78aea060729e8df74f3466c387595dbd345d548))
+- Restore wording the tropes rewrite changed without a trope ([4039fb8](https://github.com/GMOD/tubemap-core/commit/4039fb82b3d44ad62dd498f280999d726715c710))
+- Keep the active-voice and colon-lead-in fixes the restore undid ([1fe18b7](https://github.com/GMOD/tubemap-core/commit/1fe18b727c73f43a9ba5a7cfa36321024e76f40f))
+- Trim README wordiness ([893eb2b](https://github.com/GMOD/tubemap-core/commit/893eb2be607780af9f9a3762a32167b133979642))
+- ReadMismatches places a revisited node's edits on the right visit ([a3d5a39](https://github.com/GMOD/tubemap-core/commit/a3d5a39fad7011f14bb82b32d364787fc3ca3805))
+- Fold generateSVGShapesFromPath's mirrored branches together ([cebaca5](https://github.com/GMOD/tubemap-core/commit/cebaca599f06ad3d04c1f7d3617126de390cd2d8))
+- Name the lane-assignment lookups instead of re-indexing state.tracks ([b04cda1](https://github.com/GMOD/tubemap-core/commit/b04cda1f71743d5877571c0af3b3a497ff4cfb6c))
+- Shorten read placement, order and width passes ([98820bf](https://github.com/GMOD/tubemap-core/commit/98820bfe3e183b2e730ab80296173deb6216d15a))
+- Share one groupBy between geometry and the facet splits ([439e4b2](https://github.com/GMOD/tubemap-core/commit/439e4b29288e8e108b8d829d4eabaf33c56ba2e7))
+- Remove the DEBUG switch and its console logging ([35e9fab](https://github.com/GMOD/tubemap-core/commit/35e9fab3760d66f71bc93a170bba5aff5fe71874))
+- Test mirroredMismatch's strand flip directly ([4c412e3](https://github.com/GMOD/tubemap-core/commit/4c412e3cbf388e30b8bb88c64ed4afa829a1feb1))
+- Reword three comments the tropes scan flagged ([6dc709c](https://github.com/GMOD/tubemap-core/commit/6dc709c8f30e9baa70d94ecabf717608c3358f87))
+
+### Refactoring
+
+- **BREAKING** Stop exporting four layout internals ([8555ffa](https://github.com/GMOD/tubemap-core/commit/8555ffa5ec11aca9812f7922a5a5d87797f8cf91))
+- **BREAKING** Drop write-only lane-assignment fields and internal types ([fc8012f](https://github.com/GMOD/tubemap-core/commit/fc8012ff8759e60e26c2601faf21d877d5c9ff0b))
+
 ## [1.1.0](https://github.com/GMOD/tubemap-core/compare/v1.0.0...v1.1.0) (2026-10-12)
 
 ### Documentation
