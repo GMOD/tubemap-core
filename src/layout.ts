@@ -24,15 +24,6 @@ import type {
   TrackType,
 } from './types.ts'
 
-const DEBUG = false as boolean
-
-function debugLog(...args: unknown[]): void {
-  if (DEBUG) {
-    // eslint-disable-next-line no-console
-    console.log(...args)
-  }
-}
-
 // Node and Track declare some fields that not every entry gets: layout places
 // only the nodes a track or read reaches, and a normal read has no width until
 // assignReadsToNodes.
@@ -753,9 +744,6 @@ function place(
   }
 
   generateSVGShapesFromPath(state)
-  debugLog('Tracks:', state.tracks)
-  debugLog('Nodes:', state.nodes)
-  debugLog('Lane assignment:', state.assignments)
   getImageDimensions(state)
   return {
     nodes: state.nodes,
@@ -997,8 +985,6 @@ function placeReads(state: LayoutState): void {
     segment.y = bottomY[segment.order]!
     bottomY[segment.order]! += read.width
   })
-
-  debugLog('Reads:', state.reads)
 }
 
 // Place a particular collection of reads, identified by a list of read
@@ -1148,7 +1134,7 @@ function placeReadSet(
 }
 
 // The decorated sort key for one incoming read segment; see the comment in
-// placeReadSet for how it is derived. Exported for testing.
+// placeReadSet for how it is derived
 export interface IncomingReadKey {
   decisionStep: number
   y: number | undefined
@@ -1694,7 +1680,6 @@ function generateNodeOrder(state: LayoutState): void {
   generateNodeOrderOfSingleTrack(state, state.tracks[0]!.indexSequence)
 
   for (let i = 1; i < tracksAndReads.length; i += 1) {
-    debugLog(`generating order for track ${i + 1}`)
     rightIndex = generateNodeOrderTrackBeginning(
       state,
       tracksAndReads[i]!.indexSequence,
@@ -2754,20 +2739,6 @@ function buildCoarsenedSyntheticBands(
     i += 1
   }
 
-  if (DEBUG) {
-    let tallestName = '?'
-    let tallestH = 0
-    state.nodes.forEach(n => {
-      if (n.contentHeight > tallestH) {
-        tallestH = n.contentHeight
-        tallestName = n.name
-      }
-    })
-    debugLog(
-      `[coarsened] ${unit}s_in=${source.length} edges_out=${synthetic.length} ` +
-        `tallestNodeBeforePlace=${tallestName}(${tallestH.toFixed(1)})`,
-    )
-  }
   return { bands: synthetic, total }
 }
 
