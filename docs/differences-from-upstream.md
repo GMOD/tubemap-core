@@ -19,18 +19,18 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 
 ### Coarsened bands
 
-- One band per node-to-node edge instead of one ribbon per read, so a view costs
-  O(edges) rather than O(reads); bands go through the ordinary read placement
-  (viewer `8ac3c01`)
+- The layout draws one band per node-to-node edge instead of one ribbon per
+  read, so a view costs O(edges) rather than O(reads); bands go through the
+  ordinary read placement (viewer `8ac3c01`)
 - `ignoreStrand` merges +A→+B with −B→−A into one band (viewer `8ac3c01`)
 - The layout bands haplotypes too, leaving the reference in its lane (`e62f4dc`)
 - Banding counts each deduplicated walk `freq` times, so 240 walks standing for
   464 haplotypes label as 464 (`b02c141`)
-- Each haplotype band reports its share of the banded haplotypes, counting a
-  walk once however often it crosses the edge (`d028e1e`, `364804b`)
-- Banding first turns walks stored back to front to match the reference, so
-  reverse bands mark real inversions; MICB-KIR3DL1 goes from 97 bands to 72
-  (`b38cd57`)
+- Each haplotype band holds its share of the banded haplotypes, counting a walk
+  once however often it crosses the edge (`d028e1e`, `364804b`)
+- Before banding, the layout turns walks stored back to front to match the
+  reference, so reverse bands mark real inversions; MICB-KIR3DL1 goes from 97
+  bands to 72 (`b38cd57`)
 
 ### Topology, placement and facets
 
@@ -46,13 +46,14 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 - `trackWidth` sets the tube width (`c78fcb8`)
 - `freqWidth: 'linear'` makes a walk standing for n haplotypes n tubes wide
   (`518f125`)
-- Nodes may arrive without `seq`, as a graph fetched with `removeSequences` does
-  (`2a43357`)
+- A node may omit `seq`, as the nodes of a graph fetched with `removeSequences`
+  do (`2a43357`)
 
 ### Output any renderer can draw
 
-- No DOM: upstream measured each node's label with an SVG `<text>` element, and
-  the layout now multiplies one character width instead (viewer `166b9b4`)
+- The layout uses no DOM. Upstream measured each node's label with an SVG
+  `<text>` element, and the layout multiplies one character width instead
+  (viewer `166b9b4`)
 - The layout gives each shape its track's id and no color, so recoloring needs
   no new layout (`6972630`)
 - `curvePaths`, `nodeOutlinePath`, `flattenPath` and `readMismatches` turn the
@@ -64,12 +65,13 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 ## Layout that draws differently
 
 - Column gaps grow with the square root of a lane change's rise past 35 px, so
-  one long jump no longer sets its whole column's width: the viewer draws
-  hprc-chrM 29% narrower (`8be2cec`)
-- A steep curve keeps its tube width: its outer edge turns late and its inner
-  edge early, where upstream drew a hairline (`93a9b84`)
-- `curvePaths({ gapWidth })` judges steepness at the width a squeezed drawing
-  gives a gap, and the reference takes its spread first (`a28d63d`)
+  one long jump no longer sets the width of its whole column. The viewer draws
+  hprc-chrM 29% narrower as a result (`8be2cec`)
+- A steep curve keeps its tube width, because its outer edge turns late and its
+  inner edge early; upstream drew a hairline (`93a9b84`)
+- `curvePaths({ gapWidth })` judges steepness at the width of a gap in a
+  squeezed drawing, and gives the reference curves in a group the spread they
+  need before the other curves (`a28d63d`)
 - Read placement lets two reads that touch end to start share a row (`+1 <=` in
   place of `+1 <`), so a 1 bp bubble no longer forces a new row (viewer
   `8ac3c01`)
@@ -78,13 +80,14 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 
 ### Strand and orientation
 
-- Straightening the reference reverse-complements each node it turns; upstream
-  only reverses the sequence (`378eaf4`)
-- Straightening turns reads around with the nodes it turns; upstream leaves
-  their reverse visits, which draw a double turnaround (`497c2d5`)
-- A multi-base substitution on a reverse read draws reverse-complemented;
-  upstream reverses its reverse complement, a plain complement, which is
-  vgteam/sequenceTubeMap#71 (`a90c91f`)
+- The pass that straightens the reference reverse-complements each node it
+  turns; upstream only reverses the sequence (`378eaf4`)
+- The straightening pass turns reads around with the nodes it turns; upstream
+  leaves their reverse visits in place, which produce a double turnaround
+  (`497c2d5`)
+- A multi-base substitution on a reverse read draws reverse-complemented.
+  Upstream reverses its reverse complement, which yields a plain complement
+  (vgteam/sequenceTubeMap#71, `a90c91f`)
 - A reverse visit's mismatches count from the node's right end (`003693c`), and
   reversing a read flips mismatch positions around `sequenceLength`, not the
   node's pixel `width` (viewer `72f9e82`)
@@ -94,13 +97,14 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 
 - Gap curves group by the order slots they span; upstream lumps every gap-to-gap
   curve into one `"null,null"` group and sorts groups on `NaN` (`9357919`)
-- The unreachable-node sentinel and order copy-back run: upstream's
-  `new Array(n)` is all holes, so `forEach` skips them (viewer `72f9e82`)
+- The unreachable-node sentinel pass and the order copy-back run here.
+  Upstream's `new Array(n)` is all holes, which `forEach` skips, so neither ran
+  (viewer `72f9e82`)
 - Read comparators are symmetric (viewer `72f9e82`) and order nodeless segments
   transitively (`8cccccd`)
 - A read segment at y 0 counts as placed (`9724ea3`)
-- Reads are placed only in nodes that have an order, so unreached nodes no
-  longer get `contentHeight` NaN (`09b6b73`)
+- Read placement skips nodes without an order, so unreached nodes no longer get
+  `contentHeight` NaN (`09b6b73`)
 
 ### Crashes and bad values
 

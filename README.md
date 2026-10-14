@@ -1,7 +1,7 @@
 # @jbrowse/tubemap-core
 
-sequenceTubeMap's layout: graph nodes and paths (and reads) in, tube map shapes
-out. No DOM, d3 or React.
+The layout code from sequenceTubeMap. It takes graph nodes and paths (and reads)
+and returns tube map shapes, and it uses no DOM, d3 or React.
 
 ```sh
 pnpm add @jbrowse/tubemap-core
@@ -42,12 +42,12 @@ no further math.
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `shapes`                         | What to draw: `rectangles` (straight tube segments), `curves` (tubes changing lane between nodes), `corners` and `verticalRectangles` (inversions). Each shape has coordinates and its track's `id` |
 | `nodes`                          | The placed nodes, with `x`, `y`, `pixelWidth`, `contentHeight`, `order` and the `tracks` through each. Indexed from 1, with a hole at 0                                                             |
-| `tracks`                         | The haplotype tracks and placed reads, each with its `path` and `width`. A shape finds its track by `id`                                                                                            |
+| `tracks`                         | The haplotype tracks and placed reads, each with its `path` and `width`. A shape's `id` matches its track's `id`                                                                                    |
 | `reads`                          | The placed reads alone                                                                                                                                                                              |
 | `bounds`                         | `{ minX, maxX, minY, maxY }` around everything drawn; size the SVG `viewBox` from it                                                                                                                |
 | `nodeMap`                        | Node name to index in `nodes`                                                                                                                                                                       |
 | `maxOrder`, `trackForRuler`      | The count of horizontal order slots, and the name of the track a ruler takes coordinates from                                                                                                       |
-| `coarsened`, `coarsenedEdgeMeta` | What each banded layer drew and the label of every band; both are empty without `layers` or `coarsenedReadView`                                                                                     |
+| `coarsened`, `coarsenedEdgeMeta` | The `Coarsening` of each banded layer and the label of every band; both are empty without `layers` or `coarsenedReadView`                                                                           |
 
 For the example above:
 
@@ -64,21 +64,21 @@ layout.shapes.rectangles[0]
 //   type: 'haplotype' }
 ```
 
-- Shapes have no color: each names its track's `id`, and the caller colors it
-  from the matching track in `layout.tracks`, so a recolor needs no new layout
-- `layout.nodes` has a hole at index 0: use `forEach` or `filter`, not
-  `for...of` or `find`
+- Each shape holds its track's `id` and no color. The caller colors it from the
+  matching track in `layout.tracks`, so a recolor needs no new layout
+- `layout.nodes` has a hole at index 0, so iterate it with `forEach` or
+  `filter`, not `for...of` or `find`
 
 ### Drawing the layout
 
 - `curvePaths(curves, type)` fills in each curve's SVG `path`
 - `nodeOutlinePath(node)` returns a node's box as path data (`new Path2D(d)` on
   a canvas)
-- A drawing that squeezes the layout's x between columns passes
-  `curvePaths(curves, type, { gapWidth })`, the most px a gap draws across, so
-  steep curves keep their width
+- A renderer that squeezes the layout's x between columns passes the widest gap
+  it draws, in px, as `curvePaths(curves, type, { gapWidth })`, so steep curves
+  keep their width
 
-Together they draw the example as SVG:
+The code below draws the example as SVG with these functions:
 
 ```ts
 import { curvePaths, nodeOutlinePath } from '@jbrowse/tubemap-core'
@@ -106,9 +106,9 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg"
 
 ![The two paths: the reference runs straight and the alternate dips through node 3](docs/example.png)
 
-Reads go in the third argument and draw the same way. Their shapes have
-`type: 'read'`, so call `curvePaths(layout.shapes.curves, 'read')` for their
-curves.
+Reads go in the third argument, and the code above draws them the same way.
+Their shapes have `type: 'read'`, so call
+`curvePaths(layout.shapes.curves, 'read')` for their curves.
 
 - `flattenPath(d, steps)` turns any curve, corner or node outline into points,
   each Bézier split into `steps` straight pieces. Use it for renderers that fill
@@ -116,13 +116,13 @@ curves.
 - `readMismatches(layout)` places every read's substitutions, deletions and
   insertions. Each has the read's `id`, its `x` to `xEnd`, the `y` and `height`
   of the read's tube, and the substituted `seq`.
-- An insertion at the read's first or last base is marked `softClip`.
-  sequenceTubeMap hides these by default.
+- `readMismatches` marks an insertion at the read's first or last base
+  `softClip`. sequenceTubeMap hides these by default.
 
 ## Topology and placement
 
-`layoutTubeMap` runs two phases, also exported for running one topology under
-several placements:
+`layoutTubeMap` runs two phases. The package exports each one, so a caller can
+run one topology under several placements:
 
 ```ts
 const topology = layoutTopology(nodes, tracks, reads, topologyOptions)
@@ -134,8 +134,8 @@ const confident = placeTubeMap(topology, { mappingQualityCutoff: 30 })
   tracks and every primary read, and fixes each node's x from placing them all
 - `placeTubeMap` lays out the haplotypes and the reads its options keep at the
   topology's x positions, so every placement of one topology lines up
-- Read filters never move a node; one only a filtered-out read visits keeps its
-  place, drawn empty
+- Read filters never move a node. A node that only filtered-out reads visit
+  keeps its place and is drawn empty
 
 ## Facets
 
@@ -147,9 +147,9 @@ const { panels, bounds } = placeFacets(topology, { facetBy: 'sample_name' })
 ```
 
 - `facetBy`: `read_group` or `sample_name` splits the reads and repeats every
-  haplotype in each panel; `haplotype_sample` splits the haplotypes by the
-  sample in their PanSN names (`parsePanSN`), each panel keeping the reference,
-  and draws the reads in a last panel
+  haplotype in each panel. `haplotype_sample` splits the haplotypes by the
+  sample in their PanSN names (`parsePanSN`), keeps the reference in every
+  panel, and places the reads in a last panel
 - `PlacementOptions.facet` places one panel alone, as `placeTubeMap` does
 - Without `facetBy`, or with nothing to split, `panels` holds one panel of
   `placeTubeMap`'s layout
@@ -160,15 +160,15 @@ const { panels, bounds } = placeFacets(topology, { facetBy: 'sample_name' })
 - `charWidth`: px per base under `normal` (8.401)
 - `trackWidth`: tube width (15)
 - `mergeNodes`, `showReads` (true); `coarsenedReadView`, `ignoreStrand` (false)
-- `layers`: the track sets placement draws, each with an optional stat
+- `layers`: the track sets to draw, each with an optional stat
   - `{ data: 'haplotypes', stat: 'coarsen' }` bands every haplotype but the
     reference, one band per edge
   - `{ data: 'reads', stat: 'coarsen' }` does the same for the reads
   - Reads stack under the haplotypes either way
-  - Unset, `coarsenedReadView` bands the reads, or the haplotypes when no reads
-    load
-- `mappingQualityCutoff`, `focusReadNames`: read filters, the only placement
-  options; the rest belong to the topology
+  - With `layers` unset, `coarsenedReadView` bands the reads, or the haplotypes
+    when no reads load
+- `mappingQualityCutoff` and `focusReadNames` filter reads. They are the only
+  placement options, and the rest are topology options
 
 `layout.coarsened` holds a `Coarsening` per banded layer, and
 `layout.coarsenedEdgeMeta` labels every band by its id, which no two bands
@@ -204,7 +204,8 @@ pnpm test:pack
 - `.github/workflows/publish.yml` checks that the tag names the package version,
   tests, and publishes to npm with provenance under trusted publishing, which
   needs no stored token
-- A GitHub release follows, its notes taken from `CHANGELOG.md`
+- A `release` job then creates a GitHub release with notes copied from
+  `CHANGELOG.md`
 
 ## See also
 
