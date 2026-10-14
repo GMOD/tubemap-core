@@ -103,8 +103,8 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 - Read comparators are symmetric (viewer `72f9e82`) and order nodeless segments
   transitively (`8cccccd`)
 - A read segment at y 0 counts as placed (`9724ea3`)
-- Reads are placed only in nodes that have an order, so unreached nodes no
-  longer get `contentHeight` NaN (`09b6b73`)
+- Read placement skips nodes without an order, so unreached nodes no longer get
+  `contentHeight` NaN (`09b6b73`)
 
 ### Crashes and bad values
 

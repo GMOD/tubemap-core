@@ -66,8 +66,8 @@ layout.shapes.rectangles[0]
 
 - Each shape holds its track's `id` and no color. The caller colors it from the
   matching track in `layout.tracks`, so a recolor needs no new layout
-- `layout.nodes` has a hole at index 0: use `forEach` or `filter`, not
-  `for...of` or `find`
+- `layout.nodes` has a hole at index 0, so iterate it with `forEach` or
+  `filter`, not `for...of` or `find`
 
 ### Drawing the layout
 
@@ -116,8 +116,8 @@ Their shapes have `type: 'read'`, so call
 - `readMismatches(layout)` places every read's substitutions, deletions and
   insertions. Each has the read's `id`, its `x` to `xEnd`, the `y` and `height`
   of the read's tube, and the substituted `seq`.
-- An insertion at the read's first or last base is marked `softClip`, a mark
-  that sequenceTubeMap hides by default.
+- `readMismatches` marks an insertion at the read's first or last base
+  `softClip`, a mark that sequenceTubeMap hides by default.
 
 ## Topology and placement
 
@@ -167,8 +167,8 @@ const { panels, bounds } = placeFacets(topology, { facetBy: 'sample_name' })
   - Reads stack under the haplotypes either way
   - With `layers` unset, `coarsenedReadView` bands the reads, or the haplotypes
     when no reads load
-- `mappingQualityCutoff`, `focusReadNames`: read filters, the only placement
-  options; the rest belong to the topology
+- `mappingQualityCutoff` and `focusReadNames` filter reads. They are the only
+  placement options, and the rest are topology options
 
 `layout.coarsened` holds a `Coarsening` per banded layer, and
 `layout.coarsenedEdgeMeta` labels every band by its id, which no two bands
