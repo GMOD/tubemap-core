@@ -2810,7 +2810,7 @@ function generateTurnaround(
   d += ` H ${outer}`
   d += ` Q ${outer} ${yBottom + trackWidth} ${apex} ${yBottom + trackWidth}`
   d += ' Z '
-  state.shapes.corners.push({ path: d, id: trackID, type })
+  state.shapes.corners.push({ path: d, id: trackID, name: trackName, type })
 
   // top 90 degree bend
   d = `M ${apex} ${yTop}`
@@ -2818,7 +2818,7 @@ function generateTurnaround(
   d += ` H ${inner}`
   d += ` Q ${inner} ${yTop + trackWidth} ${apex} ${yTop + trackWidth}`
   d += ' Z '
-  state.shapes.corners.push({ path: d, id: trackID, type })
+  state.shapes.corners.push({ path: d, id: trackID, name: trackName, type })
   extra[order]! += 1
 }
 

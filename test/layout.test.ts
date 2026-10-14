@@ -102,6 +102,22 @@ describe('layoutTubeMap', () => {
     }
   })
 
+  it('names the track on a turnaround’s corners', () => {
+    const { corners } = layoutTubeMap(nodes, [
+      tracks[0]!,
+      {
+        id: 1,
+        name: 'loop',
+        sequence: ['1', '3', '4', '-3'],
+        sourceTrackID: 0,
+      },
+    ])!.shapes
+    expect(corners.length).toBeGreaterThan(0)
+    expect(new Set(corners.map(c => `${c.name}:${c.id}`))).toEqual(
+      new Set(['loop:1']),
+    )
+  })
+
   it('places reads under the haplotypes that carry them', () => {
     const reads: InputTrack[] = [
       {
