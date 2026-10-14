@@ -32,21 +32,20 @@ export function readMismatches(layout: TubeMapLayout): ReadMismatch[] {
     if (read.type !== 'read' || entries === undefined) {
       continue
     }
+    // each entry's visit comes after the previous entry's, so a read that
+    // revisits a node finds its second visit
+    let from = 0
     entries.forEach((entry, i) => {
       const nodeIndex = nodeMap.get(forward(entry.nodeName))
       const node = nodeIndex === undefined ? undefined : nodes[nodeIndex]
-      // node merging can drop a visit, so the walk stops at the path's end
-      let pathIndex = i
-      while (
-        pathIndex < read.path.length &&
-        read.path[pathIndex]!.node !== nodeIndex
-      ) {
-        pathIndex += 1
-      }
+      const pathIndex = read.path.findIndex(
+        (s, j) => j >= from && s.node === nodeIndex,
+      )
       const segment = read.path[pathIndex]
       if (node === undefined || segment?.y === undefined) {
         return
       }
+      from = pathIndex + 1
       for (const edit of entry.mismatches) {
         // vg counts a reverse visit's positions from the node's right end
         const mm = segment.isForward

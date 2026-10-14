@@ -80,6 +80,24 @@ describe('readMismatches', () => {
     expect(del!.xEnd).toBeCloseTo(base(2))
   })
 
+  it('places an edit on the visit it belongs to when a read revisits a node', () => {
+    const read: InputTrack = {
+      ...readThrough4(['1', '4', '4']),
+      sequenceNew: [
+        { nodeName: '1', mismatches: [] },
+        { nodeName: '4', mismatches: [] },
+        { nodeName: '4', mismatches: [edits[0]!] },
+      ],
+    }
+    const { layout } = layoutWith(read)
+    const visits = layout.reads[0]!.path.filter(
+      s => s.node === layout.nodeMap.get('4'),
+    )
+    expect(visits[0]!.y).not.toBe(visits[1]!.y)
+    const [sub] = readMismatches(layout)
+    expect(sub!.y).toBe(visits[1]!.y)
+  })
+
   it('places every brca1 read edit inside its node', () => {
     const fixture = JSON.parse(
       readFileSync(new URL('fixtures/brca1.json', import.meta.url), 'utf8'),
