@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import { layoutTubeMap } from '../src/layout.ts'
+import { layoutTubeMap, mirroredMismatch } from '../src/layout.ts'
 import { readMismatches } from '../src/mismatches.ts'
 
 import type { InputNode, InputTrack, Mismatch } from '../src/types.ts'
@@ -116,5 +116,31 @@ describe('readMismatches', () => {
       expect(inside).toBe(true)
       expect(m.xEnd).toBeGreaterThanOrEqual(m.x)
     }
+  })
+})
+
+describe('mirroredMismatch', () => {
+  it('measures an insertion from the far end of the node', () => {
+    const mm = mirroredMismatch({ type: 'insertion', pos: 2, seq: 'AC' }, 10)
+    expect(mm).toMatchObject({ pos: 8, seq: 'GT' })
+  })
+
+  it('moves a deletion back by its length', () => {
+    const mm = mirroredMismatch({ type: 'deletion', pos: 2, length: 3 }, 10)
+    expect(mm.pos).toBe(5)
+  })
+
+  it('moves a substitution back by its length and reverse-complements it', () => {
+    const mm = mirroredMismatch(
+      { type: 'substitution', pos: 2, seq: 'AGG' },
+      10,
+    )
+    expect(mm).toMatchObject({ pos: 5, seq: 'CCT' })
+  })
+
+  it('leaves its input alone and undoes itself', () => {
+    const edit: Mismatch = { type: 'substitution', pos: 4, seq: 'GT' }
+    expect(mirroredMismatch(mirroredMismatch(edit, 20), 20)).toStrictEqual(edit)
+    expect(edit).toStrictEqual({ type: 'substitution', pos: 4, seq: 'GT' })
   })
 })
