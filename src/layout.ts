@@ -754,16 +754,8 @@ function place(
     state.reads = haplotypeBands.bands.concat(state.reads)
   }
 
-  if (state.reads.length > 0) {
-    placeReads(state)
-    state.tracks = state.tracks.concat(state.reads)
-  } else {
-    state.nodes.forEach(node => {
-      node.incomingReads = []
-      node.outgoingReads = []
-      node.internalReads = []
-    })
-  }
+  placeReads(state)
+  state.tracks = state.tracks.concat(state.reads)
 
   if (x === 'measure') {
     generateNodeXCoords(state)
@@ -849,10 +841,7 @@ function straightenTrack(state: LayoutState, index: number): void {
 
 // generates attributes (node.y, node.contentHeight) for nodes without tracks, only reads
 function generateReadOnlyNodeAttributes(state: LayoutState): void {
-  state.nodesPerOrder = []
-  for (let i = 0; i <= state.maxOrder; i += 1) {
-    state.nodesPerOrder[i] = []
-  }
+  state.nodesPerOrder = Array.from({ length: state.maxOrder + 1 }, () => [])
 
   const orderY = new Map<number, number>()
   state.nodes.forEach((node: MaybeUnplacedNode) => {
@@ -902,26 +891,19 @@ function assignReadsToNodes(state: LayoutState): void {
     if (read.width === undefined || read.width === 0) {
       read.width = READ_WIDTH
     }
-    if (read.path.length === 1) {
-      const firstNode = read.path[0]!.node
-      if (firstNode !== null) {
-        state.nodes[firstNode]!.internalReads.push(idx)
+    read.path.forEach((segment, pathIdx) => {
+      if (segment.node === null) {
+        return
       }
-    } else {
-      read.path.forEach((element, pathIdx) => {
-        if (pathIdx === 0) {
-          const firstNode = read.path[0]!.node
-          if (firstNode !== null) {
-            state.nodes[firstNode]!.outgoingReads.push([idx, pathIdx])
-          }
-        } else {
-          const elemNode = element.node
-          if (elemNode !== null) {
-            state.nodes[elemNode]!.incomingReads.push([idx, pathIdx])
-          }
-        }
-      })
-    }
+      const node = state.nodes[segment.node]!
+      if (read.path.length === 1) {
+        node.internalReads.push(idx)
+      } else if (pathIdx === 0) {
+        node.outgoingReads.push([idx, pathIdx])
+      } else {
+        node.incomingReads.push([idx, pathIdx])
+      }
+    })
   })
 }
 
@@ -969,35 +951,22 @@ function placeReads(state: LayoutState): void {
   const bottomY = calculateBottomY(state)
   const elementsWithoutNode: ElementWithoutNode[] = []
   state.reads.forEach((read, idx) => {
-    const len = read.path.length
-
-    // For each path index, precompute the nearest preceding/following segment
-    // whose node is non-null and truthy. Falls back to the boundary segment when
-    // none qualifies, matching the original walking-loop semantics.
-    const prevSegment = new Array<Segment | undefined>(len)
-    let lastValidPrev: Segment | undefined
-    for (let i = 0; i < len; i++) {
-      if (i === 0) {
-        prevSegment[i] = undefined
-      } else {
-        prevSegment[i] = lastValidPrev ?? read.path[0]
+    // The nearest node visit before and after each segment. A read starts and
+    // ends on a node, so only its first and last segments lack one.
+    const prevSegment: (Segment | undefined)[] = []
+    const nextSegment: (Segment | undefined)[] = []
+    let visit: Segment | undefined
+    read.path.forEach((seg, i) => {
+      prevSegment[i] = visit
+      if (seg.node !== null) {
+        visit = seg
       }
-      const seg = read.path[i]!
-      if (seg.node !== null && seg.node) {
-        lastValidPrev = seg
-      }
-    }
-    const nextSegment = new Array<Segment | undefined>(len)
-    let firstValidNext: Segment | undefined
-    for (let i = len - 1; i >= 0; i--) {
-      if (i === len - 1) {
-        nextSegment[i] = undefined
-      } else {
-        nextSegment[i] = firstValidNext ?? read.path[len - 1]
-      }
-      const seg = read.path[i]!
-      if (seg.node !== null && seg.node) {
-        firstValidNext = seg
+    })
+    visit = undefined
+    for (let i = read.path.length - 1; i >= 0; i -= 1) {
+      nextSegment[i] = visit
+      if (read.path[i]!.node !== null) {
+        visit = read.path[i]
       }
     }
 
@@ -1273,88 +1242,52 @@ function compareNoNodeReads(
   return aReverse ? bPrev - aPrev : aPrev - bPrev
 }
 
-// compare read segments by where they are going to
+// Order reads leaving a node by the y of each one's last placed segment, else
+// by the node where their paths part, else by where each starts and ends
 function compareReadOutgoingSegmentsByGoingTo(
   state: LayoutState,
   [readIndexA, pathIndexA]: [number, number],
   [readIndexB, pathIndexB]: [number, number],
 ): number {
-  // Expect two arrays both containing 2 integers.
-  // The first index of each array contains the read index
-  // The second index of each array contains the path index
-
-  // Segments are first sorted by the y value of their last node,
-  // then by the node they end on,
-  // then by length in final node
   const readA = state.reads[readIndexA]!
   const readB = state.reads[readIndexB]!
-  let previousValidYA: number | undefined
-  let previousValidYB: number | undefined
-  let lastPathIndexA = readA.path.length - 1
-  let lastPathIndexB = readB.path.length - 1
-  while (previousValidYA === undefined && lastPathIndexA >= 0) {
-    previousValidYA = readA.path[lastPathIndexA]?.y
-    lastPathIndexA -= 1
-  }
-  while (previousValidYB === undefined && lastPathIndexB >= 0) {
-    previousValidYB = readB.path[lastPathIndexB]?.y
-    lastPathIndexB -= 1
+  const lastYA = readA.path.findLast(seg => seg.y !== undefined)?.y
+  const lastYB = readB.path.findLast(seg => seg.y !== undefined)?.y
+  if (lastYA !== undefined && lastYB !== undefined) {
+    return lastYA - lastYB
   }
 
-  if (previousValidYA !== undefined && previousValidYB !== undefined) {
-    return previousValidYA - previousValidYB
+  const nodeAt = (read: Track, i: number) => {
+    const node = read.path[i]?.node
+    return node === null || node === undefined
+      ? null
+      : (state.nodes[node] ?? null)
   }
-
-  // Couldn't find a valid y value for at least one of the reads, sort by which node reads end on
-  const initialNodeA = readA.path[pathIndexA]?.node
-  const initialNodeB = readB.path[pathIndexB]?.node
-  let nodeA: LayoutNode | null | undefined =
-    typeof initialNodeA === 'number' ? state.nodes[initialNodeA] : null
-  let nodeB: LayoutNode | null | undefined =
-    typeof initialNodeB === 'number' ? state.nodes[initialNodeB] : null
-  // Follow the reads' paths until we find the node they diverge at
-  // Or, they go through all the same nodes and we do a tiebreaker at the end
-  while (nodeA && nodeB && nodeA === nodeB) {
-    if (pathIndexA < readA.path.length - 1) {
-      pathIndexA += 1
-      while (readA.path[pathIndexA]?.node === null) {
-        pathIndexA += 1
-      } // skip null nodes in path
-      const nextNodeIdx = readA.path[pathIndexA]?.node
-      nodeA = typeof nextNodeIdx === 'number' ? state.nodes[nextNodeIdx] : null
-    } else {
-      nodeA = null
+  const nextVisit = (read: Track, i: number) => {
+    let next = i + 1
+    while (read.path[next]?.node === null) {
+      next += 1
     }
-    if (pathIndexB < readB.path.length - 1) {
-      pathIndexB += 1
-      while (readB.path[pathIndexB]?.node === null) {
-        pathIndexB += 1
-      } // skip null nodes in path
-      const nextNodeIdx = readB.path[pathIndexB]?.node
-      nodeB = typeof nextNodeIdx === 'number' ? state.nodes[nextNodeIdx] : null
-    } else {
-      nodeB = null
-    }
+    return next
   }
-  if (nodeA) {
-    if (nodeB) {
-      return compareNodesByOrder(nodeA, nodeB)
-    }
-    return 1 // nodeB is null, nodeA not null
+  let nodeA = nodeAt(readA, pathIndexA)
+  let nodeB = nodeAt(readB, pathIndexB)
+  while (nodeA !== null && nodeA === nodeB) {
+    pathIndexA = nextVisit(readA, pathIndexA)
+    pathIndexB = nextVisit(readB, pathIndexB)
+    nodeA = nodeAt(readA, pathIndexA)
+    nodeB = nodeAt(readB, pathIndexB)
   }
-  if (nodeB) {
-    return -1
-  } // nodeB not null, nodeA null
-  // both nodes are null -> both end in the same node
-  const beginDiff = (readA.firstNodeOffset ?? 0) - (readB.firstNodeOffset ?? 0)
-  if (beginDiff !== 0) {
-    return beginDiff
+  if (nodeA !== null && nodeB !== null) {
+    return compareNodesByOrder(nodeA, nodeB)
   }
-
-  // break tie: both reads cover the same nodes and begin at the same position
-
-  // One or both reads didn't have a previously valid Y value, compare by the endPosition of the read
-  return (readA.finalNodeCoverLength ?? 0) - (readB.finalNodeCoverLength ?? 0)
+  if (nodeA !== null || nodeB !== null) {
+    return nodeA === null ? -1 : 1
+  }
+  return (
+    (readA.firstNodeOffset ?? 0) - (readB.firstNodeOffset ?? 0) ||
+    (readA.finalNodeCoverLength ?? 0) - (readB.finalNodeCoverLength ?? 0)
+  )
 }
 
 // Compare tracks based on ordering at their first convergence
@@ -1403,10 +1336,7 @@ function compareInternalReads(
 
 // determine biggest y-coordinate for each order-value
 function calculateBottomY(state: LayoutState): number[] {
-  const bottomY: number[] = []
-  for (let i = 0; i <= state.maxOrder; i += 1) {
-    bottomY.push(0)
-  }
+  const bottomY = new Array<number>(state.maxOrder + 1).fill(0)
 
   state.nodes.forEach((node: MaybeUnplacedNode) => {
     if (node.y !== undefined) {
@@ -1487,41 +1417,25 @@ function reverseReversedReads(
   reads: readonly Track[] = state.reads,
 ): void {
   reads.forEach(read => {
-    let pos = 0
-    while (pos < read.sequence.length && read.sequence[pos]!.startsWith('-')) {
-      pos += 1
+    if (!read.sequence.every(isReverse)) {
+      return
     }
-    if (pos === read.sequence.length) {
-      // completely reversed read
-      read.is_reverse = true
-      read.sequence = read.sequence.reverse() // invert sequence
-      for (let i = 0; i < read.sequence.length; i += 1) {
-        read.sequence[i] = forward(read.sequence[i]!) // visit nodes forward
-        // TODO: Do we really want to visit all the nodes forward here? Are we
-        // sure we aren't in mixed orientation?
-      }
-
-      const sequenceNew = read.sequenceNew ?? []
-      sequenceNew.reverse() // invert sequence
-      read.sequenceNew = sequenceNew
-      for (const entry of sequenceNew) {
-        entry.nodeName = forward(entry.nodeName) // visit nodes forward
-        reverseMismatches(
-          entry.mismatches,
-          nodeByName(state, entry.nodeName).sequenceLength,
-        )
-      }
-
-      // adjust firstNodeOffset and finalNodeCoverLength
-      const temp = read.firstNodeOffset ?? 0
-      const firstLen = nodeByName(state, read.sequence[0]!).sequenceLength
-      read.firstNodeOffset = firstLen - (read.finalNodeCoverLength ?? 0)
-      const lastLen = nodeByName(
-        state,
-        read.sequence[read.sequence.length - 1]!,
-      ).sequenceLength
-      read.finalNodeCoverLength = lastLen - temp
+    read.is_reverse = true
+    read.sequence = read.sequence.reverse().map(forward)
+    read.sequenceNew = (read.sequenceNew ?? []).reverse()
+    for (const entry of read.sequenceNew) {
+      entry.nodeName = forward(entry.nodeName)
+      reverseMismatches(
+        entry.mismatches,
+        nodeByName(state, entry.nodeName).sequenceLength,
+      )
     }
+
+    const firstOffset = read.firstNodeOffset ?? 0
+    const firstLen = nodeByName(state, read.sequence[0]!).sequenceLength
+    const lastLen = nodeByName(state, read.sequence.at(-1)!).sequenceLength
+    read.firstNodeOffset = firstLen - (read.finalNodeCoverLength ?? 0)
+    read.finalNodeCoverLength = lastLen - firstOffset
   })
 }
 
@@ -1756,17 +1670,11 @@ function generateNodeOrderTrackBeginning(
 // Sentinel order for nodes no track or read reaches.
 export const UNREACHABLE_ORDER = -1
 
-// Replace every unassigned entry with UNREACHABLE_ORDER, producing a dense
-// array. Holes matter here: `new Array(n)` is all holes and forEach/map skip
-// them, so an in-place forEach would leave the sentinel unset.
+// Replace every unassigned entry, holes included, with UNREACHABLE_ORDER
 export function fillUnassignedOrders(
   orders: readonly (number | undefined)[],
 ): number[] {
-  const filled: number[] = []
-  for (const order of orders) {
-    filled.push(order ?? UNREACHABLE_ORDER)
-  }
-  return filled
+  return Array.from(orders, order => order ?? UNREACHABLE_ORDER)
 }
 
 // generate global sequence of nodes from left to right, starting with first track and adding other tracks sequentially
@@ -1911,13 +1819,9 @@ function generateNodeOrder(state: LayoutState): void {
 
   // Nodes unreachable from any track get UNREACHABLE_ORDER so every node ends
   // up with a defined order; downstream code uses `order >= 0` to skip them.
-  const finalOrders = fillUnassignedOrders(state.nodeOrders)
-  state.nodeOrders = finalOrders
-  finalOrders.forEach((order, i) => {
-    const node = state.nodes[i]
-    if (node !== undefined) {
-      node.order = order
-    }
+  state.nodeOrders = fillUnassignedOrders(state.nodeOrders)
+  state.nodes.forEach((node, i) => {
+    node.order = state.nodeOrders[i]!
   })
 }
 
@@ -1997,10 +1901,7 @@ function increaseOrderForSuccessors(
     const currentNodeOrder = state.nodeOrders[currentNode]
 
     if (currentNodeOrder !== undefined && currentNodeOrder < currentOrder) {
-      if (
-        !increasedOrders.has(currentNode) ||
-        increasedOrders.get(currentNode)! < currentOrder
-      ) {
+      if ((increasedOrders.get(currentNode) ?? -Infinity) < currentOrder) {
         increasedOrders.set(currentNode, currentOrder)
         state.nodes[currentNode]!.successors.forEach(successor => {
           if (
@@ -2164,16 +2065,11 @@ function riseExtra(rise: number): number {
 // two neighboring nodes have to be moved further apart if there is a lot going on in between them
 // -> edges turning to vertical orientation should not overlap
 function calculateExtraSpace(state: LayoutState): number[] {
-  const leftSideEdges: number[] = []
-  const rightSideEdges: number[] = []
-  const fallAngleAdjustment: number[] = []
+  const slots = state.maxOrder + 1
+  const leftSideEdges = new Array<number>(slots).fill(0)
+  const rightSideEdges = new Array<number>(slots).fill(0)
+  const fallAngleAdjustment = new Array<number>(slots).fill(0)
   const extra: number[] = []
-
-  for (let i = 0; i <= state.maxOrder; i += 1) {
-    leftSideEdges.push(0)
-    rightSideEdges.push(0)
-    fallAngleAdjustment.push(0)
-  }
 
   state.tracks.forEach(track => {
     for (let i = 1; i < track.path.length; i += 1) {
@@ -2183,9 +2079,9 @@ function calculateExtraSpace(state: LayoutState): number[] {
       if (seg.order === prevSeg.order) {
         // repeat or translocation
         if (seg.isForward) {
-          leftSideEdges[seg.order] = leftSideEdges[seg.order]! + 1
+          leftSideEdges[seg.order]! += 1
         } else {
-          rightSideEdges[seg.order] = rightSideEdges[seg.order]! + 1
+          rightSideEdges[seg.order]! += 1
         }
       } else {
         // TODO: Extra space should also be accounted when there are too many tracks curving at the nodes
@@ -2506,9 +2402,6 @@ function compareNodesByOrder(
 }
 
 function calculateTrackWidth(state: LayoutState): void {
-  // flag: if vg returns freq of 0 for all tracks, we will increase width manually
-  let allAreFour = true
-
   const NARROW_WIDTH = 4
   const WIDE_WIDTH = state.config.trackWidth
 
@@ -2523,23 +2416,16 @@ function calculateTrackWidth(state: LayoutState): void {
   }
 
   for (const track of state.tracks) {
-    if (track.freq !== undefined) {
-      track.width = Math.round(
-        (Math.log(Math.max(track.freq, 1)) + 1) * NARROW_WIDTH,
-      )
-    } else {
-      // default track width
-      track.width = WIDE_WIDTH
-      if (track.type !== undefined && track.type === 'read') {
-        track.width = NARROW_WIDTH
-      }
-    }
-    if (track.width !== NARROW_WIDTH) {
-      allAreFour = false
-    }
+    track.width =
+      track.freq !== undefined
+        ? Math.round((Math.log(Math.max(track.freq, 1)) + 1) * NARROW_WIDTH)
+        : track.type === 'read'
+          ? NARROW_WIDTH
+          : WIDE_WIDTH
   }
 
-  if (allAreFour) {
+  // freqs of 0 and 1 all draw narrow, which means vg gave no real frequencies
+  if (state.tracks.every(track => track.width === NARROW_WIDTH)) {
     state.tracks.forEach(track => {
       if (track.freq !== undefined) {
         track.width = WIDE_WIDTH
