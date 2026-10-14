@@ -1135,14 +1135,14 @@ function placeReadSet(
 
 // The decorated sort key for one incoming read segment; see the comment in
 // placeReadSet for how it is derived
-export interface IncomingReadKey {
+interface IncomingReadKey {
   decisionStep: number
   y: number | undefined
 }
 
 // Smaller decisionStep wins. On a tie, entries that walked off the front of the
 // path (no defined y) sort first and tie with each other; otherwise compare y.
-export function compareIncomingReadKeys(
+function compareIncomingReadKeys(
   a: IncomingReadKey,
   b: IncomingReadKey,
 ): number {
@@ -1421,7 +1421,7 @@ function reverseReversedReads(
 // sequenceLength (not node.width, which is only equal to it in 'normal'
 // node-width mode) is the right pivot because mismatch positions are base
 // offsets.
-export function reverseMismatches(
+function reverseMismatches(
   mismatches: Mismatch[],
   sequenceLength: number,
 ): void {
@@ -1648,7 +1648,7 @@ function generateNodeOrderTrackBeginning(
 export const UNREACHABLE_ORDER = -1
 
 // Replace every unassigned entry, holes included, with UNREACHABLE_ORDER
-export function fillUnassignedOrders(
+function fillUnassignedOrders(
   orders: readonly (number | undefined)[],
 ): number[] {
   return Array.from(orders, order => order ?? UNREACHABLE_ORDER)
