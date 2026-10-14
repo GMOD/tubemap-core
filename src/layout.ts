@@ -1397,10 +1397,14 @@ function reverseReversedReads(
     if (!read.sequence.every(isReverse)) {
       return
     }
-    read.is_reverse = true
-    read.sequence = read.sequence.reverse().map(forward)
-    read.sequenceNew = (read.sequenceNew ?? []).reverse()
-    for (const entry of read.sequenceNew) {
+    // turning a read around flips its strand: a later node switch can turn it
+    // back, and a read can arrive already flagged reverse
+    read.is_reverse = read.is_reverse !== true
+    read.sequence = read.sequence.toReversed().map(forward)
+    if (read.sequenceNew !== undefined) {
+      read.sequenceNew = read.sequenceNew.toReversed()
+    }
+    for (const entry of read.sequenceNew ?? []) {
       entry.nodeName = forward(entry.nodeName)
       reverseMismatches(
         entry.mismatches,

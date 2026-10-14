@@ -179,6 +179,57 @@ describe('layoutTubeMap', () => {
     expect(layout.reads.map(r => r.sequence)).toEqual([['a']])
   })
 
+  it('merges nodes under a reverse read that has no sequenceNew', () => {
+    const layout = layoutTubeMap(run, runTracks, [
+      { id: 0, type: 'read', sequence: ['-4', '-2'], sourceTrackID: 1 },
+    ])!
+    expect(layout.reads.map(r => [r.sequence, r.is_reverse])).toEqual([
+      [['2', '4'], true],
+    ])
+    expect(layout.reads[0]!.sequenceNew).toBeUndefined()
+  })
+
+  it('keeps reads on opposite strands of a switched node apart', () => {
+    const layout = layoutTubeMap(
+      [
+        { name: '1', seq: 'AAAA' },
+        { name: '2', seq: 'CCCC' },
+        { name: '5', seq: 'GGTT' },
+        { name: '3', seq: 'TTTT' },
+      ],
+      [
+        { id: 0, sequence: ['1', '2', '3'], sourceTrackID: 0 },
+        { id: 1, sequence: ['1', '-5', '3'], sourceTrackID: 0 },
+      ],
+      [
+        { id: 0, type: 'read', sequence: ['-5'], sourceTrackID: 1 },
+        { id: 1, type: 'read', sequence: ['5'], sourceTrackID: 1 },
+      ],
+    )!
+    const switched = layout.nodes.filter(n => n.switched === true)
+    expect(switched.map(n => n.name)).toEqual(['5'])
+    const strand = new Map(layout.reads.map(r => [r.id, r.is_reverse === true]))
+    expect(strand).toEqual(
+      new Map([
+        [0, false],
+        [1, true],
+      ]),
+    )
+  })
+
+  it('turns a read flagged reverse around to forward when it walks reverse nodes', () => {
+    const layout = layoutTubeMap(nodes, tracks, [
+      {
+        id: 0,
+        type: 'read',
+        sequence: ['-4', '-2'],
+        sourceTrackID: 1,
+        is_reverse: true,
+      },
+    ])!
+    expect(layout.reads[0]!.is_reverse).toBe(false)
+  })
+
   it('returns no reads when told not to show them', () => {
     const layout = layoutTubeMap(
       nodes,
