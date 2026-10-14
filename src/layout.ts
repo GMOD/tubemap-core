@@ -179,8 +179,8 @@ export interface TubeMapTopology {
 
 type LayoutConfig = Required<TopologyOptions>
 
-// sequenceTubeMap's character width, which the compressed, small and fixed
-// node widths scale by whatever `charWidth` says
+// sequenceTubeMap's character width. The compressed, small and fixed node
+// widths always scale by it and ignore `charWidth`.
 const DEFAULT_CHAR_WIDTH = 8.401
 
 // The coarsened view bands haplotypes only when no reads were loaded, not when
@@ -1398,8 +1398,8 @@ function reverseReversedReads(
     if (!read.sequence.every(isReverse)) {
       return
     }
-    // turning a read around flips its strand: a later node switch can turn it
-    // back, and a read can arrive already flagged reverse
+    // each turn flips the strand, since a later node switch can turn a read
+    // back and a read can arrive already flagged reverse
     read.is_reverse = read.is_reverse !== true
     read.sequence = read.sequence.toReversed().map(forward)
     if (read.sequenceNew !== undefined) {
@@ -2350,8 +2350,8 @@ function calculateTrackWidth(state: LayoutState): void {
   }
 }
 
-// The x of base `base` of a read's visit, counted along the strand it visits
-// on: from the node's left end forward, its right end in reverse
+// The x of base `base` of a read's visit, counted from the node's left end
+// on a forward visit and from its right end on a reverse one
 function readBaseX(state: LayoutState, seg: Segment, base: number): number {
   const node = state.nodes[seg.node!]!
   return clampedXCoordinateOfBaseWithinNode(
