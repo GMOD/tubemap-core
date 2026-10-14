@@ -35,8 +35,7 @@ const layout = layoutTubeMap(
 ## What `layoutTubeMap` returns
 
 A `TubeMapLayout`, or `undefined` when no visible track is left. Every
-coordinate is in layout pixels, x rightward and y downward, so a renderer needs
-no further math.
+coordinate is in layout pixels, x rightward and y downward.
 
 | Field                            | Holds                                                                                                                                                                                               |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -64,8 +63,8 @@ layout.shapes.rectangles[0]
 //   type: 'haplotype' }
 ```
 
-- Each shape holds its track's `id` and no color. The caller colors it from the
-  matching track in `layout.tracks`, so a recolor needs no new layout
+- Each shape holds its track's `id` and no color, so a recolor needs no new
+  layout
 - `layout.nodes` has a hole at index 0, so iterate it with `forEach` or
   `filter`, not `for...of` or `find`
 
@@ -170,10 +169,6 @@ const { panels, bounds } = placeFacets(topology, { facetBy: 'sample_name' })
 - `mappingQualityCutoff` and `focusReadNames` filter reads. They are the only
   placement options, and the rest are topology options
 
-`layout.coarsened` holds a `Coarsening` per banded layer, and
-`layout.coarsenedEdgeMeta` labels every band by its id, which no two bands
-share.
-
 ## Development
 
 ```sh
@@ -202,8 +197,7 @@ pnpm test:pack
 - `pnpm version <patch|minor|major>` runs the CI checks, bumps `version`, writes
   the changelog with git-cliff, tags `v<version>` and pushes the tag
 - `.github/workflows/publish.yml` checks that the tag names the package version,
-  tests, and publishes to npm with provenance under trusted publishing, which
-  needs no stored token
+  tests, and publishes to npm with provenance
 - A `release` job then creates a GitHub release with notes copied from
   `CHANGELOG.md`
 
@@ -233,10 +227,3 @@ Derived from https://github.com/vgteam/sequenceTubeMap, keeping its original MIT
 copyright notice.
 [docs/differences-from-upstream.md](docs/differences-from-upstream.md) lists
 what this package adds and changes.
-
-## Used in
-
-- MemPanG tube map https://github.com/cmdcolin/sequenceTubeMap
-- JBrowse 2 graphgenomeviewer plugin
-  https://github.com/GMOD/jbrowse-plugin-graphgenomeviewer
-- ggtubemap, tube maps as ggplot2 layers in R https://github.com/GMOD/ggtubemap
