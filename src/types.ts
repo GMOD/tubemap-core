@@ -122,7 +122,6 @@ export interface Node extends InputNode {
   y: number
   contentHeight: number
   x: number
-  topLane: number
   successors: number[]
   predecessors: number[]
   tracks: number[]
@@ -139,22 +138,6 @@ export interface LayoutNode extends Node {
   order: number
 }
 
-export interface SegmentAssignment {
-  trackID: number
-  segmentID: number
-  compareToFromSame: SegmentAssignment | null
-  idealLane?: number | undefined
-  idealY?: number | null | undefined
-  lane?: number
-}
-
-export interface NodeAssignment {
-  type: 'single' | 'multiple'
-  node: number | null
-  tracks: SegmentAssignment[]
-  idealLane?: number | undefined
-}
-
 // Drawing instructions from one layout, in layout coordinates.
 export interface TrackShapes {
   rectangles: TrackRectangle[]
@@ -162,15 +145,6 @@ export interface TrackShapes {
   corners: TrackCorner[]
   // drawn separately so they don't overlap the horizontal rectangles
   verticalRectangles: TrackRectangle[]
-}
-
-export function emptyTrackShapes(): TrackShapes {
-  return {
-    rectangles: [],
-    curves: [],
-    corners: [],
-    verticalRectangles: [],
-  }
 }
 
 // The extent of the drawn content, in layout coordinates.

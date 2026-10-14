@@ -5,7 +5,6 @@
 // placeTubeMap stacks a chosen set of tracks and reads on that topology.
 import { groupBy } from './groupBy.ts'
 import { parsePanSN } from './panSN.ts'
-import { emptyTrackShapes } from './types.ts'
 
 import type {
   HaplotypeShare,
@@ -15,10 +14,8 @@ import type {
   LayoutNode,
   Mismatch,
   Node,
-  NodeAssignment,
   ReadSequenceEntry,
   Segment,
-  SegmentAssignment,
   Track,
   TrackShapes,
   TrackType,
@@ -157,12 +154,7 @@ export interface TubeMapLayout {
 // A node before placement gives it a y and the reads through it
 export type TopologyNode = Omit<
   LayoutNode,
-  | 'y'
-  | 'contentHeight'
-  | 'topLane'
-  | 'incomingReads'
-  | 'outgoingReads'
-  | 'internalReads'
+  'y' | 'contentHeight' | 'incomingReads' | 'outgoingReads' | 'internalReads'
 >
 
 // A haplotype or read before placement gives it a width and lanes
@@ -186,6 +178,10 @@ export interface TubeMapTopology {
 }
 
 type LayoutConfig = Required<TopologyOptions>
+
+// sequenceTubeMap's character width, which the compressed, small and fixed
+// node widths scale by whatever `charWidth` says
+const DEFAULT_CHAR_WIDTH = 8.401
 
 // The coarsened view bands haplotypes only when no reads were loaded, not when
 // a filter hides them all
@@ -217,9 +213,34 @@ function configFrom(options: TopologyOptions, hasReads: boolean): LayoutConfig {
     layers: layersFrom(options, hasReads),
     ignoreStrand: options.ignoreStrand ?? false,
     nodeWidthOption: options.nodeWidthOption ?? 'normal',
-    charWidth: options.charWidth ?? 8.401,
+    charWidth: options.charWidth ?? DEFAULT_CHAR_WIDTH,
     trackWidth: options.trackWidth ?? 15,
     freqWidth: options.freqWidth ?? 'log',
+  }
+}
+
+// One track's segment in an order slot, and where its lane would ideally go
+interface SegmentAssignment {
+  trackID: number
+  segmentID: number
+  idealLane?: number | undefined
+  idealY?: number | null | undefined
+}
+
+// The segments of one order slot that visit one node, or a single segment
+// passing or turning in a gap when `node` is null
+interface NodeAssignment {
+  node: number | null
+  tracks: SegmentAssignment[]
+  idealLane?: number | undefined
+}
+
+function emptyTrackShapes(): TrackShapes {
+  return {
+    rectangles: [],
+    curves: [],
+    corners: [],
+    verticalRectangles: [],
   }
 }
 
@@ -245,7 +266,6 @@ interface LayoutState {
   // horizontal order of the rightmost node
   maxOrder: number
   shapes: TrackShapes
-  imageBounds: ImageBounds
   trackForRuler: string | undefined
   coarsenedEdgeMeta: Map<number, CoarsenedEdgeMeta>
 }
@@ -264,7 +284,6 @@ function emptyState(config: LayoutConfig): LayoutState {
     extraRight: [],
     maxOrder: -1,
     shapes: emptyTrackShapes(),
-    imageBounds: { minX: 0, maxX: 0, minY: 0, maxY: 0 },
     trackForRuler: undefined,
     coarsenedEdgeMeta: new Map(),
   }
@@ -744,14 +763,13 @@ function place(
   }
 
   generateSVGShapesFromPath(state)
-  getImageDimensions(state)
   return {
     nodes: state.nodes,
     tracks: state.tracks,
     reads: state.reads,
     nodeMap: state.nodeMap,
     shapes: state.shapes,
-    bounds: state.imageBounds,
+    bounds: getImageDimensions(state),
     maxOrder: state.maxOrder,
     trackForRuler: state.trackForRuler,
     coarsenedEdgeMeta: state.coarsenedEdgeMeta,
@@ -1016,19 +1034,13 @@ function placeReadSet(
     topMargin = 0
   }
 
-  // Determine where we start vertically in the node.
-  // TODO: Why do we have to double this to keep reads out of adjacent lanes???
+  // twice the margin, as sequenceTubeMap spaces them, keeps reads out of the
+  // lanes beside them
   const startY = node.y + node.contentHeight + topMargin * 2
 
-  // sort incoming reads — decorate with a precomputed key so each compare is O(1).
-  // The original comparator walks pathIdx backwards in lockstep on both sides, picking
-  // the first step where either has a defined y (or reaches index 0). The walk's outcome
-  // for a single entry is fully captured by:
-  //   decisionStep: the smallest k>=1 where path[pathIdx-k].y is defined, or pathIdx+1
-  //                 if no preceding segment has a defined y (the "reached 0" case).
-  //   y:            the defined y at decisionStep, or undefined for "reached 0".
-  // Smaller decisionStep wins; ties put the "reached 0" entries first;
-  // otherwise compare y's.
+  // Sort incoming reads by how far back along each path its last placed
+  // segment is (decisionStep: the smallest k >= 1 where path[pathIdx - k].y
+  // is set, or pathIdx + 1 when none is) and then by that segment's y
   const incomingKeys = incomingReads.map(entry => {
     const [readID, pathIdx] = entry
     const path = state.reads[readID]!.path
@@ -1047,7 +1059,6 @@ function placeReadSet(
   incomingKeys.sort(compareIncomingReadKeys)
   incomingReads = incomingKeys.map(k => k.entry)
 
-  // place incoming reads
   let currentY = startY
   const occupiedUntil = new Map<number, number>()
   incomingReads.forEach(readElement => {
@@ -1058,26 +1069,19 @@ function placeReadSet(
   })
   let maxY = currentY
 
-  // sort outgoing reads
   outgoingReads.sort((a, b) =>
     compareReadOutgoingSegmentsByGoingTo(state, a, b),
   )
 
-  // place outgoing reads
   const occupiedFrom = new Map<number, number>()
   currentY = startY
   outgoingReads.forEach(readElement => {
     const read = state.reads[readElement[0]]!
     const firstNodeOffset = read.firstNodeOffset ?? 0
-    // place in next lane
     read.path[readElement[1]]!.y = currentY
     occupiedFrom.set(currentY, firstNodeOffset)
-    // if no conflicts. The original predicate was strict-less-than, which
-    // treats two reads that exactly touch (incoming ends at base K, outgoing
-    // starts at base K+1) as conflicting. They don't overlap, so they can
-    // share a lane — relax to <=. This also matters for coarsened Sankey
-    // bands at single-base nodes (e.g. a 1bp "G" node): with edge-only offsets
-    // the math becomes 0+1 < 1 (conflict, wrong) vs. 0+1 <= 1 (no conflict).
+    // a read that starts the base after an incoming one ends shares its lane,
+    // which lets coarsened bands through a 1 bp node share one
     const occUntil = occupiedUntil.get(currentY)
     if (occUntil === undefined || occUntil + 1 <= firstNodeOffset) {
       currentY += read.width
@@ -1107,10 +1111,8 @@ function placeReadSet(
     }
   })
 
-  // sort internal reads
   internalReads.sort((a, b) => compareInternalReads(state, a, b))
 
-  // place internal reads
   internalReads.forEach(readIdx => {
     const currentRead = state.reads[readIdx]!
     const firstNodeOffset = currentRead.firstNodeOffset ?? 0
@@ -1120,7 +1122,7 @@ function placeReadSet(
       firstNodeOffset < (occupiedUntil.get(currentY) ?? -Infinity) + 2 ||
       finalNodeCoverLength > (occupiedFrom.get(currentY) ?? Infinity) - 3
     ) {
-      currentY += currentRead.width || READ_WIDTH
+      currentY += currentRead.width
     }
     currentRead.path[0]!.y = currentY
     occupiedUntil.set(currentY, finalNodeCoverLength)
@@ -1163,13 +1165,12 @@ function setOccupiedUntil(
   y: number,
   node: Node,
 ): void {
-  if (pathIndex === read.path.length - 1) {
-    // last node of current read
-    map.set(y, read.finalNodeCoverLength ?? 0)
-  } else {
-    // read covers the whole node
-    map.set(y, node.sequenceLength)
-  }
+  map.set(
+    y,
+    pathIndex === read.path.length - 1
+      ? (read.finalNodeCoverLength ?? 0)
+      : node.sequenceLength,
+  )
 }
 
 interface ElementWithoutNode {
@@ -1406,9 +1407,9 @@ function reverseReversedReads(
     }
     for (const entry of read.sequenceNew ?? []) {
       entry.nodeName = forward(entry.nodeName)
-      reverseMismatches(
-        entry.mismatches,
-        nodeByName(state, entry.nodeName).sequenceLength,
+      const { sequenceLength } = nodeByName(state, entry.nodeName)
+      entry.mismatches = entry.mismatches.map(mm =>
+        mirroredMismatch(mm, sequenceLength),
       )
     }
 
@@ -1420,20 +1421,9 @@ function reverseReversedReads(
   })
 }
 
-// Flip a node's mismatches onto the opposite strand: positions are measured
-// from the other end of the node, and sequences are reverse-complemented.
-// sequenceLength (not node.width, which is only equal to it in 'normal'
-// node-width mode) is the right pivot because mismatch positions are base
-// offsets.
-function reverseMismatches(
-  mismatches: Mismatch[],
-  sequenceLength: number,
-): void {
-  mismatches.forEach(mm => {
-    Object.assign(mm, mirroredMismatch(mm, sequenceLength))
-  })
-}
-
+// A mismatch on the opposite strand: its position counted from the node's
+// other end and its bases reverse-complemented. The pivot is sequenceLength,
+// not node.width, because positions count bases.
 export function mirroredMismatch(
   mm: Mismatch,
   sequenceLength: number,
@@ -1492,10 +1482,13 @@ const NODE_HORIZONTAL_SLACK = 20
 // The box around every node outline and track shape. A turnaround's corners
 // reach no further out than its vertical rectangles, so the rectangles and
 // curves stand in for them.
-function getImageDimensions(state: LayoutState): void {
-  // Sentinels, deliberately crossed: if nothing below runs, minZoom() and
-  // alignSVG() detect the empty content rather than computing a negative scale.
-  const bounds: ImageBounds = { minX: 99, maxX: -99, minY: 99, maxY: -99 }
+function getImageDimensions(state: LayoutState): ImageBounds {
+  const bounds: ImageBounds = {
+    minX: Infinity,
+    maxX: -Infinity,
+    minY: Infinity,
+    maxY: -Infinity,
+  }
 
   const { rectangles, verticalRectangles, curves } = state.shapes
   for (const shapes of [rectangles, verticalRectangles, curves]) {
@@ -1527,7 +1520,7 @@ function getImageDimensions(state: LayoutState): void {
     })
   })
 
-  state.imageBounds = bounds
+  return bounds
 }
 
 // Resolve a (possibly reverse-oriented) node name to its layout node. Every
@@ -1623,11 +1616,9 @@ function generateNodeOrderTrackBeginning(
   let currentOrder: number
   let increment: number
   if (anchorSeqVal >= 0) {
-    // regular node
     currentOrder = state.nodeOrders[anchorSeqVal]! - 1
     increment = -1
   } else {
-    // reverse node
     currentOrder = state.nodeOrders[-anchorSeqVal]! + 1
     increment = 1
   }
@@ -2087,84 +2078,31 @@ function calculateExtraSpace(state: LayoutState): number[] {
   return extra
 }
 
-// create and fill assignment-variable, which contains info about tracks and lanes for each order-value
+// Gather each order slot's segments, those visiting one node together, then
+// sweep left to right giving every segment a lane
 function generateLaneAssignment(state: LayoutState): void {
-  // For each horizontal order slot, for each track number, holds the
-  // SegmentAssignment object for the visit of that track to that order slot.
-  // When an order slot is visited multiple times, holds whatever
-  // SegmentAssignment was created most recently.
-  const prevSegmentPerOrderPerTrack: SegmentAssignment[][] = []
-  // Index into assignments[order] by node, so addToAssignment can find an
-  // existing entry without scanning the whole order slot.
-  const assignmentByOrderAndNode: Map<number, NodeAssignment>[] = []
-
-  // create empty variables
-  for (let i = 0; i <= state.maxOrder; i += 1) {
-    state.assignments[i] = []
-    assignmentByOrderAndNode[i] = new Map()
-    prevSegmentPerOrderPerTrack[i] = []
-  }
-
-  // Record each track's segments in the order slots they cross, leaving the
-  // lanes for the sweep below.
-  state.tracks.forEach((track, trackNo) => {
+  state.assignments = Array.from({ length: state.maxOrder + 1 }, () => [])
+  const byNode = new Map<number, NodeAssignment>()
+  state.tracks.forEach((track, trackID) => {
     track.path = basicPath(state, track)
-    track.path.forEach((segment, segmentNumber) => {
-      addToAssignment(
-        state,
-        segment.order,
-        segment.node,
-        trackNo,
-        segmentNumber,
-        prevSegmentPerOrderPerTrack,
-        assignmentByOrderAndNode,
-      )
+    track.path.forEach(({ order, node }, segmentID) => {
+      const segment: SegmentAssignment = { trackID, segmentID }
+      const existing = node === null ? undefined : byNode.get(node)
+      if (existing === undefined) {
+        const assignment: NodeAssignment = { node, tracks: [segment] }
+        state.assignments[order]!.push(assignment)
+        if (node !== null) {
+          byNode.set(node, assignment)
+        }
+      } else {
+        existing.tracks.push(segment)
+      }
     })
   })
 
-  // Now sweep left to right across order slots and assign vertical lanes to all the segments.
   for (let i = 0; i <= state.maxOrder; i += 1) {
-    generateSingleLaneAssignment(state, state.assignments[i]!, i) // this is where the lanes get assigned
+    generateSingleLaneAssignment(state, state.assignments[i]!, i)
   }
-}
-
-function addToAssignment(
-  state: LayoutState,
-  order: number,
-  nodeIndex: number | null,
-  trackNo: number,
-  segmentID: number,
-  prevSegmentPerOrderPerTrack: SegmentAssignment[][],
-  assignmentByOrderAndNode: Map<number, NodeAssignment>[],
-): void {
-  const segment: SegmentAssignment = {
-    trackID: trackNo,
-    segmentID,
-    compareToFromSame: prevSegmentPerOrderPerTrack[order]![trackNo] ?? null,
-  }
-  // A null node means the track is passing through / turning around here rather
-  // than visiting a node, so such segments never share a NodeAssignment.
-  const existing =
-    nodeIndex === null
-      ? undefined
-      : assignmentByOrderAndNode[order]!.get(nodeIndex)
-
-  if (existing === undefined) {
-    const assignment: NodeAssignment = {
-      type: 'single',
-      node: nodeIndex,
-      tracks: [segment],
-    }
-    state.assignments[order]!.push(assignment)
-    if (nodeIndex !== null) {
-      assignmentByOrderAndNode[order]!.set(nodeIndex, assignment)
-    }
-  } else {
-    // add to existing node in assignment
-    existing.type = 'multiple'
-    existing.tracks.push(segment)
-  }
-  prevSegmentPerOrderPerTrack[order]![trackNo] = segment
 }
 
 // looks at assignment and sets idealY and idealLane by looking at where the tracks come from
@@ -2229,7 +2167,6 @@ function generateSingleLaneAssignment(
   assignment.forEach(node => {
     const placed = node.node === null ? undefined : state.nodes[node.node]!
     if (placed !== undefined) {
-      placed.topLane = currentLane
       if (prevNameIsNull) {
         currentY -= 10
       }
@@ -2248,7 +2185,6 @@ function generateSingleLaneAssignment(
     node.tracks.sort(compareByIdealLane)
     node.tracks.forEach(track => {
       const { path, width } = state.tracks[track.trackID]!
-      track.lane = currentLane
       if (
         track.trackID === prevTrack &&
         placed === undefined &&
@@ -2414,25 +2350,13 @@ function calculateTrackWidth(state: LayoutState): void {
   }
 }
 
-function getReadXStart(state: LayoutState, read: Track): number {
-  const seg = read.path[0]!
+// The x of base `base` of a read's visit, counted along the strand it visits
+// on: from the node's left end forward, its right end in reverse
+function readBaseX(state: LayoutState, seg: Segment, base: number): number {
   const node = state.nodes[seg.node!]!
-  const offset = read.firstNodeOffset ?? 0
-  // read starts in forward direction, or backward from the node's far end
   return clampedXCoordinateOfBaseWithinNode(
     node,
-    seg.isForward ? offset : node.sequenceLength - offset,
-  )
-}
-
-function getReadXEnd(state: LayoutState, read: Track): number {
-  const seg = read.path[read.path.length - 1]!
-  const node = state.nodes[seg.node!]!
-  const cover = read.finalNodeCoverLength ?? 0
-  // read ends in forward direction, or backward from the node's far end
-  return clampedXCoordinateOfBaseWithinNode(
-    node,
-    seg.isForward ? cover : node.sequenceLength - cover,
+    seg.isForward ? base : node.sequenceLength - base,
   )
 }
 
@@ -2507,7 +2431,7 @@ function generateSVGShapesFromPath(state: LayoutState): void {
     let yStart = first.y!
     let xStart =
       type === 'read'
-        ? getReadXStart(state, track)
+        ? readBaseX(state, first, track.firstNodeOffset ?? 0)
         : first.isForward
           ? orderStartX[first.order]! - 20
           : orderEndX[first.order]! + 20
@@ -2561,7 +2485,7 @@ function generateSVGShapesFromPath(state: LayoutState): void {
     const last = path[path.length - 1]!
     const xEnd =
       type === 'read'
-        ? getReadXEnd(state, track)
+        ? readBaseX(state, last, track.finalNodeCoverLength ?? 0)
         : exitX(last) + (last.isForward ? 20 : -20)
     rectangle(xStart, xEnd, yStart)
   })
@@ -2595,7 +2519,7 @@ function buildCoarsenedSyntheticBands(
   state: LayoutState,
   source: Track[],
   unit: CoarsenedUnit,
-  firstId = COARSENED_ID_BASE,
+  firstId: number,
 ): { bands: Track[]; total: number } {
   // Aggregate by signed-edge key. Preserve orientation so e.g. (+A→+B) and
   // (-B→-A) stack as separate bands — they're different visual flows.
@@ -2723,9 +2647,7 @@ function buildCoarsenedSyntheticBands(
       sequence: [edge.sName, edge.dName],
       indexSequence: [],
       path: [],
-      // Pre-set width so placeReads / placeReadSet allocate the right vertical
-      // space and assignReadsToNodes (patched to honor pre-set widths) leaves
-      // it alone.
+      // assignReadsToNodes keeps a width already set
       width: widthForCount(edge.crossings),
       firstNodeOffset: srcLen,
       finalNodeCoverLength: 0,
@@ -2914,19 +2836,22 @@ function generateNodeWidth(state: LayoutState): void {
     case 'compressed':
       state.nodes.forEach(node => {
         node.width = 1 + Math.log2(Math.max(node.sequenceLength, 1))
-        node.pixelWidth = Math.round((node.width - 1) * 8.401)
+        node.pixelWidth = Math.round((node.width - 1) * DEFAULT_CHAR_WIDTH)
       })
       break
     case 'small':
       state.nodes.forEach(node => {
         node.width = node.sequenceLength / 100
-        node.pixelWidth = Math.max(Math.round((node.width - 1) * 8.401), 0)
+        node.pixelWidth = Math.max(
+          Math.round((node.width - 1) * DEFAULT_CHAR_WIDTH),
+          0,
+        )
       })
       break
     case 'fixed':
       state.nodes.forEach(node => {
         node.width = 10
-        node.pixelWidth = Math.round(node.width * 8.401)
+        node.pixelWidth = Math.round(node.width * DEFAULT_CHAR_WIDTH)
       })
       break
     case 'normal': {
@@ -3056,7 +2981,7 @@ function mergeNodes(state: LayoutState): void {
 
   const absorbed = new Uint8Array(state.nodes.length)
   state.nodes.forEach((_, i) => {
-    if (mergeableWithPred(i, pred, succ) !== 0) {
+    if (mergeableWithPred(i, pred, succ)) {
       absorbed[i] = 1
     }
   })
@@ -3155,16 +3080,13 @@ function mergeNodes(state: LayoutState): void {
   state.nodes.length = kept
 }
 
-// The index of the node `index` merges into, or 0 when it merges into none.
 function mergeableWithPred(
   index: number,
   pred: Neighbors,
   succ: Neighbors,
-): number {
+): boolean {
   const predecessor = soleNeighbor(pred, index)
   return predecessor !== 0 && soleNeighbor(succ, predecessor) !== 0
-    ? predecessor
-    : 0
 }
 
 function mergeableWithSucc(
