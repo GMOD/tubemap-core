@@ -1,7 +1,7 @@
 # @jbrowse/tubemap-core
 
-The layout code from sequenceTubeMap. It takes graph nodes and paths (and reads)
-and returns tube map shapes, and it uses no DOM, d3 or React.
+sequenceTubeMap's layout: graph nodes and paths (and reads) in, tube map shapes
+out. No DOM, d3 or React.
 
 ```sh
 pnpm add @jbrowse/tubemap-core
