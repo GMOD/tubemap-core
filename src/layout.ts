@@ -1395,25 +1395,10 @@ function compareInternalReads(
 ): number {
   const a = state.reads[idxA]!
   const b = state.reads[idxB]!
-  // compare by first base within first node
-  const aFirst = a.firstNodeOffset ?? 0
-  const bFirst = b.firstNodeOffset ?? 0
-  if (aFirst < bFirst) {
-    return -1
-  } else if (aFirst > bFirst) {
-    return 1
-  }
-
-  // compare by last base within last node
-  const aLast = a.finalNodeCoverLength ?? 0
-  const bLast = b.finalNodeCoverLength ?? 0
-  if (aLast < bLast) {
-    return -1
-  } else if (aLast > bLast) {
-    return 1
-  }
-
-  return 0
+  return (
+    (a.firstNodeOffset ?? 0) - (b.firstNodeOffset ?? 0) ||
+    (a.finalNodeCoverLength ?? 0) - (b.finalNodeCoverLength ?? 0)
+  )
 }
 
 // determine biggest y-coordinate for each order-value
@@ -2312,55 +2297,39 @@ function getIdealLanesAndCoords(
   assignment: NodeAssignment[],
   order: number,
 ): void {
-  let index: number
-
   assignment.forEach(node => {
-    node.idealLane = 0
+    let laneSum = 0
     node.tracks.forEach(track => {
-      if (track.segmentID === 0) {
-        track.idealLane = track.trackID
-        track.idealY = null
-      } else {
-        if (
-          state.tracks[track.trackID]!.path[track.segmentID - 1]!.order ===
-          order - 1
-        ) {
-          track.idealLane =
-            state.tracks[track.trackID]!.path[track.segmentID - 1]!.lane ??
-            undefined
-          track.idealY =
-            state.tracks[track.trackID]!.path[track.segmentID - 1]!.y
-        } else if (
-          track.segmentID < state.tracks[track.trackID]!.path.length - 1 &&
-          state.tracks[track.trackID]!.path[track.segmentID + 1]!.order ===
-            order - 1
-        ) {
-          track.idealLane =
-            state.tracks[track.trackID]!.path[track.segmentID + 1]!.lane ??
-            undefined
-          track.idealY =
-            state.tracks[track.trackID]!.path[track.segmentID + 1]!.y
-        } else {
-          index = track.segmentID - 1
-          while (
-            index >= 0 &&
-            state.tracks[track.trackID]!.path[index]!.order !== order - 1
-          ) {
-            index -= 1
-          }
-          if (index < 0) {
-            track.idealLane = track.trackID
-            track.idealY = null
-          } else {
-            track.idealLane = state.tracks[track.trackID]!.path[index]!.lane
-            track.idealY = state.tracks[track.trackID]!.path[index]!.y
-          }
-        }
-      }
-      node.idealLane! += track.idealLane!
+      const from = segmentToTheLeft(
+        state.tracks[track.trackID]!.path,
+        track.segmentID,
+        order - 1,
+      )
+      track.idealLane = from === undefined ? track.trackID : from.lane
+      track.idealY = from === undefined ? null : from.y
+      laneSum += track.idealLane!
     })
-    node.idealLane /= node.tracks.length
+    node.idealLane = laneSum / node.tracks.length
   })
+}
+
+// The segment a track's lane follows in from order slot `leftOrder`: its
+// neighbor on either side there, else its last earlier visit to it
+function segmentToTheLeft(
+  path: readonly Segment[],
+  segmentID: number,
+  leftOrder: number,
+): Segment | undefined {
+  if (segmentID === 0) {
+    return undefined
+  }
+  if (path[segmentID - 1]!.order === leftOrder) {
+    return path[segmentID - 1]
+  }
+  if (path[segmentID + 1]?.order === leftOrder) {
+    return path[segmentID + 1]
+  }
+  return path.slice(0, segmentID).findLast(seg => seg.order === leftOrder)
 }
 
 // assigns the optimal lanes for a single horizontal position (=order)
@@ -2382,13 +2351,14 @@ function generateSingleLaneAssignment(
   assignment.sort(compareByIdealLane)
 
   assignment.forEach(node => {
-    if (node.node !== null) {
-      state.nodes[node.node]!.topLane = currentLane
+    const placed = node.node === null ? undefined : state.nodes[node.node]!
+    if (placed !== undefined) {
+      placed.topLane = currentLane
       if (prevNameIsNull) {
         currentY -= 10
       }
-      state.nodes[node.node]!.y = currentY
-      state.nodes[node.node]!.contentHeight = 0
+      placed.y = currentY
+      placed.contentHeight = 0
       prevNameIsNull = false
     } else {
       if (prevNameIsNull) {
@@ -2401,20 +2371,24 @@ function generateSingleLaneAssignment(
 
     node.tracks.sort(compareByIdealLane)
     node.tracks.forEach(track => {
+      const { path, width } = state.tracks[track.trackID]!
       track.lane = currentLane
-      if (track.trackID === prevTrack && node.node === null && prevNameIsNull) {
+      if (
+        track.trackID === prevTrack &&
+        placed === undefined &&
+        prevNameIsNull
+      ) {
         currentY += 10
       }
-      state.tracks[track.trackID]!.path[track.segmentID]!.lane = currentLane
-      state.tracks[track.trackID]!.path[track.segmentID]!.y = currentY
+      path[track.segmentID]!.lane = currentLane
+      path[track.segmentID]!.y = currentY
       if (typeof track.idealY === 'number') {
         potentialAdjustmentValues.add(track.idealY - currentY)
       }
       currentLane += 1
-      currentY += state.tracks[track.trackID]!.width
-      if (node.node !== null) {
-        state.nodes[node.node]!.contentHeight +=
-          state.tracks[track.trackID]!.width
+      currentY += width
+      if (placed !== undefined) {
+        placed.contentHeight += width
       }
       prevTrack = track.trackID
     })
@@ -2481,16 +2455,12 @@ function adjustVertically3(
       })
     }
   })
-  if (state.nodesPerOrder[node.order]!.length > 0) {
-    state.nodesPerOrder[node.order]!.forEach(nodeIndex => {
-      if (
-        state.nodes[nodeIndex] !== node &&
-        state.nodes[nodeIndex]!.y > node.y
-      ) {
-        state.nodes[nodeIndex]!.y += adjustBy
-      }
-    })
-  }
+  state.nodesPerOrder[node.order]!.forEach(nodeIndex => {
+    const other = state.nodes[nodeIndex]!
+    if (other !== node && other.y > node.y) {
+      other.y += adjustBy
+    }
+  })
 }
 
 // calculates cost of vertical adjustment as vertical distance * width of track
@@ -2502,16 +2472,10 @@ function getVerticalAdjustmentCost(
   let result = 0
   assignment.forEach(node => {
     node.tracks.forEach(track => {
-      if (
-        typeof track.idealY === 'number' &&
-        state.tracks[track.trackID]!.type !== 'read'
-      ) {
+      const { type, path, width } = state.tracks[track.trackID]!
+      if (typeof track.idealY === 'number' && type !== 'read') {
         result +=
-          Math.abs(
-            track.idealY -
-              moveBy -
-              state.tracks[track.trackID]!.path[track.segmentID]!.y!,
-          ) * state.tracks[track.trackID]!.width
+          Math.abs(track.idealY - moveBy - path[track.segmentID]!.y!) * width
       }
     })
   })
@@ -2522,21 +2486,10 @@ function compareByIdealLane(
   a: { idealLane?: number | undefined },
   b: { idealLane?: number | undefined },
 ): number {
-  if (a.idealLane !== undefined) {
-    if (b.idealLane !== undefined) {
-      if (a.idealLane < b.idealLane) {
-        return -1
-      } else if (a.idealLane > b.idealLane) {
-        return 1
-      }
-      return 0
-    }
-    return -1
+  if (a.idealLane === undefined || b.idealLane === undefined) {
+    return Number(a.idealLane === undefined) - Number(b.idealLane === undefined)
   }
-  if (b.idealLane !== undefined) {
-    return 1
-  }
-  return 0
+  return a.idealLane - b.idealLane
 }
 
 function compareNodesByOrder(
