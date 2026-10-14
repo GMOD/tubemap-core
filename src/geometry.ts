@@ -2,33 +2,12 @@
 // ribbon and a node's rounded outline. Both are strings so the same geometry
 // draws as an SVG `d` attribute or, through Path2D, on a canvas, and
 // flattenPath turns either into points for a renderer that fills polygons.
+import { groupBy } from './groupBy.ts'
+
 import type { Node, TrackCurve, TrackType } from './types.ts'
 
-function groupBy<T, K>(items: readonly T[], key: (item: T) => K): Map<K, T[]> {
-  const groups = new Map<K, T[]>()
-  for (const item of items) {
-    const k = key(item)
-    const group = groups.get(k)
-    if (group === undefined) {
-      groups.set(k, [item])
-    } else {
-      group.push(item)
-    }
-  }
-  return groups
-}
-
 function compareCurvesByXYStartValue(a: TrackCurve, b: TrackCurve): number {
-  if (a.xStart < b.xStart) {
-    return 1
-  } else if (a.xStart > b.xStart) {
-    return -1
-  } else if (a.yStart > b.yStart) {
-    return 1
-  } else if (a.yStart < b.yStart) {
-    return -1
-  }
-  return 0
+  return b.xStart - a.xStart || a.yStart - b.yStart
 }
 
 // Where a curve leaves and enters: a node, or a gap at an order slot

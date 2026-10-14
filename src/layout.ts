@@ -3,6 +3,7 @@
 // drawing. It runs in two phases, each on a fresh LayoutState: layoutTopology
 // merges, orders, orients and sizes the nodes and fixes their x, and
 // placeTubeMap stacks a chosen set of tracks and reads on that topology.
+import { groupBy } from './groupBy.ts'
 import { parsePanSN } from './panSN.ts'
 import { emptyTrackShapes } from './types.ts'
 
@@ -517,21 +518,11 @@ export interface FacetSubset<F extends Facet = Facet> {
 }
 
 // Group `items` by key: in sort order, the null key last
-function groupBy<T>(
+function sortedGroups<T>(
   items: readonly T[],
   keyOf: (item: T) => string | null,
 ): [string | null, T[]][] {
-  const groups = new Map<string | null, T[]>()
-  for (const item of items) {
-    const key = keyOf(item)
-    const group = groups.get(key)
-    if (group === undefined) {
-      groups.set(key, [item])
-    } else {
-      group.push(item)
-    }
-  }
-  return [...groups].sort(([a], [b]) =>
+  return [...groupBy(items, keyOf)].sort(([a], [b]) =>
     a === null || b === null
       ? Number(a === null) - Number(b === null)
       : a.localeCompare(b, undefined, { numeric: true }),
@@ -546,7 +537,7 @@ export function facetReads(
   by: ReadFacetBy,
   options: PlacementOptions = {},
 ): FacetSubset<ReadFacet>[] {
-  return groupBy(
+  return sortedGroups(
     selectReads(topology, { ...options, facet: undefined }),
     read => read[by] ?? null,
   ).map(([key, reads]) => ({
@@ -566,7 +557,7 @@ export function facetHaplotypes(
   options: PlacementOptions = {},
 ): FacetSubset<HaplotypeFacet>[] {
   const kept = references(topology)
-  const samples = groupBy(
+  const samples = sortedGroups(
     topology.tracks.filter(track => !kept.has(track)),
     sampleOf,
   )
