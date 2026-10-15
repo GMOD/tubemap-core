@@ -1649,6 +1649,17 @@ function fillUnassignedOrders(
   return Array.from(orders, order => order ?? UNREACHABLE_ORDER)
 }
 
+// increaseOrderForSuccessors can move every node off an order, and
+// generateSVGShapesFromPath has no x for a lane change at an empty order, so
+// the used orders are renumbered 0, 1, 2, ...
+function compactOrders(orders: readonly number[]): number[] {
+  const used = [...new Set(orders.filter(order => order >= 0))].sort(
+    (a, b) => a - b,
+  )
+  const rank = new Map(used.map((order, i) => [order, i]))
+  return orders.map(order => rank.get(order) ?? order)
+}
+
 // generate global sequence of nodes from left to right, starting with first track and adding other tracks sequentially
 function generateNodeOrder(state: LayoutState): void {
   let modifiedSequence: number[]
@@ -1790,7 +1801,7 @@ function generateNodeOrder(state: LayoutState): void {
 
   // Nodes unreachable from any track get UNREACHABLE_ORDER so every node ends
   // up with a defined order; downstream code uses `order >= 0` to skip them.
-  state.nodeOrders = fillUnassignedOrders(state.nodeOrders)
+  state.nodeOrders = compactOrders(fillUnassignedOrders(state.nodeOrders))
   state.nodes.forEach((node, i) => {
     node.order = state.nodeOrders[i]!
   })

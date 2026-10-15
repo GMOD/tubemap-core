@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
 import { curvePaths, nodeOutlinePath } from '../src/geometry.ts'
@@ -287,6 +289,27 @@ describe('layoutTubeMap', () => {
         { id: 1, name: 'alt', sequence: ['1', '-9', '4'], sourceTrackID: 0 },
       ]),
     ).toThrow('Track alt visits unknown node -9')
+  })
+
+  // GRCh38, CHM13 and HG00232#1 through a tandem repeat near LPA, from the
+  // HPRC release 2.1 walk file. Placing them moves nodes off some orders, and
+  // tracks change lane at those orders.
+  it('leaves no order without a node, so a lane change there has an x', () => {
+    const { nodes, tracks } = JSON.parse(
+      readFileSync(
+        new URL('fixtures/lpa-str-empty-orders.json', import.meta.url),
+        'utf8',
+      ),
+    ) as { nodes: InputNode[]; tracks: InputTrack[] }
+    for (const nodeWidthOption of ['normal', 'compressed'] as const) {
+      const layout = layoutTubeMap(nodes, tracks, [], { nodeWidthOption })!
+      expectFiniteGeometry(layout)
+      for (const { path } of curvePaths(layout.shapes.curves, 'haplotype')) {
+        expect(path).not.toMatch(/NaN|undefined/)
+      }
+      const used = new Set(layout.nodes.map(n => n.order).filter(o => o >= 0))
+      expect(used.size).toBe(Math.max(...used) + 1)
+    }
   })
 
   it('keeps widths from going negative for short or empty nodes and rare haplotypes', () => {
