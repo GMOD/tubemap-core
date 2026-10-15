@@ -1,3 +1,9 @@
+## [2.0.1](https://github.com/GMOD/tubemap-core/compare/v2.0.0...v2.0.1) (2026-10-15)
+
+### Bug Fixes
+
+- Renumber node orders so none is left empty ([43060e7](https://github.com/GMOD/tubemap-core/commit/43060e7f24702d491b7e397047c64239083ae9d1))
+
 ## [2.0.0](https://github.com/GMOD/tubemap-core/compare/v1.1.0...v2.0.0) (2026-10-14)
 
 ### Bug Fixes
