@@ -109,6 +109,12 @@ Reads go in the third argument, and the code above draws them the same way.
 Their shapes have `type: 'read'`, so call
 `curvePaths(layout.shapes.curves, 'read')` for their curves.
 
+- `readColor(read)` colours a read by its strand, as every tube map reader does:
+  forward reads from `FORWARD_READ_COLORS`, reds, and reverse reads from
+  `REVERSE_READ_COLORS`, blues, as JBrowse's alignments track colours strands. A
+  read takes the shade its `id` picks, so neighbouring reads differ. Before
+  2.1.0 sequenceTubeMap painted forward blue, as vg's tube map does since 2023
+
 - `flattenPath(d, steps)` turns any curve, corner or node outline into points,
   each Bézier split into `steps` straight pieces. Use it for renderers that fill
   polygons, such as matplotlib or R's grid.
