@@ -1,3 +1,17 @@
+## [2.1.0](https://github.com/GMOD/tubemap-core/compare/v2.0.1...v2.1.0) (2026-11-21)
+
+### Chores
+
+- Drop persisted checkout credentials and the publish job's cache ([1140aba](https://github.com/GMOD/tubemap-core/commit/1140aba587b7075a396972fad5c9578954a309c8))
+
+### Features
+
+- ReadColor and the read ramps, forward reds and reverse blues as JBrowse colours strands, so every tube map reader paints reads alike ([e4d9202](https://github.com/GMOD/tubemap-core/commit/e4d92024d78cdf6084a6fd50ce5e2aa692fd57f9))
+
+### Other Changes
+
+- Bump deps, drop unused dev deps and stale ignores ([1e45376](https://github.com/GMOD/tubemap-core/commit/1e45376ab9194b89fb9c493597b5a988ae8832cd))
+
 ## [2.0.1](https://github.com/GMOD/tubemap-core/compare/v2.0.0...v2.0.1) (2026-10-15)
 
 ### Bug Fixes
