@@ -885,7 +885,7 @@ describe('layoutTubeMap', () => {
           { mergeNodes: false },
         )!
         const runs = layout.shapes.rectangles.filter(r => r.id === 1)
-        const block = layout.nodes.filter(n => n.name === 'C')[0]!
+        const block = layout.nodes[layout.nodeMap.get('C')!]!
         expect(runs.filter(r => r.reverse)).toHaveLength(1)
         expect(
           runs
