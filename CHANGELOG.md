@@ -1,3 +1,9 @@
+## [2.1.1](https://github.com/GMOD/tubemap-core/compare/v2.1.0...v2.1.1) (2026-11-23)
+
+### Other Changes
+
+- Raising a node's order settles each node to its right once, in the order the nodes stood, so a chain of bubbles behind an insertion no longer fills the queue with the square of its length and runs the heap out. ([a518aa8](https://github.com/GMOD/tubemap-core/commit/a518aa8786b7b29acc289241288dd5e92cac51b1))
+
 ## [2.1.0](https://github.com/GMOD/tubemap-core/compare/v2.0.1...v2.1.0) (2026-11-21)
 
 ### Chores
