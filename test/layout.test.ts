@@ -71,6 +71,53 @@ describe('layoutTubeMap', () => {
     expect(byName.get('2')!.y).not.toBe(byName.get('3')!.y)
   })
 
+  // The reference takes the long side of each bubble in a chain, a second
+  // haplotype the short side, and a third pushes the chain right with a
+  // detour as long as it, so each join is reached at a higher order down
+  // each side. Settled one raise at a time, the chain took memory and time
+  // with its square and ran the heap out in an HPRC MHC window.
+  it('pushes a chain of bubbles right in time with its length', () => {
+    const bubbles = 5000
+    const chain = Array.from({ length: bubbles }, (_, i) => i + 1)
+    const detour = chain.map(i => `d${i}`)
+    const names = [
+      's',
+      'j0',
+      ...detour,
+      ...chain.flatMap(i => [`a${i}`, `b${i}`, `c${i}`, `j${i}`]),
+    ]
+    const start = performance.now()
+    const topology = layoutTopology(
+      names.map(name => ({ name, seq: 'A' })),
+      [
+        {
+          id: 0,
+          name: 'ref',
+          sequence: [
+            's',
+            'j0',
+            ...chain.flatMap(i => [`b${i}`, `c${i}`, `j${i}`]),
+          ],
+          sourceTrackID: 0,
+        },
+        {
+          id: 1,
+          name: 'alt',
+          sequence: ['s', 'j0', ...chain.flatMap(i => [`a${i}`, `j${i}`])],
+          sourceTrackID: 0,
+        },
+        {
+          id: 2,
+          name: 'detour',
+          sequence: ['s', ...detour, 'j0', 'a1', 'j1'],
+          sourceTrackID: 0,
+        },
+      ],
+    )!
+    expect(performance.now() - start).toBeLessThan(5000)
+    expect(topology.maxOrder).toBe(2 * bubbles + 2)
+  })
+
   it('leaves its inputs untouched and repeats itself exactly', () => {
     const before = structuredClone({ nodes, tracks })
     const a = layoutTubeMap(nodes, tracks)

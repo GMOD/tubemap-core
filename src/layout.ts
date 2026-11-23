@@ -4,6 +4,7 @@
 // merges, orders, orients and sizes the nodes and fixes their x, and
 // placeTubeMap stacks a chosen set of tracks and reads on that topology.
 import { groupBy } from './groupBy.ts'
+import { MinHeap } from './minHeap.ts'
 import { parsePanSN } from './panSN.ts'
 
 import type {
@@ -1865,52 +1866,53 @@ function increaseOrderForAllNodes(state: LayoutState, amount: number): void {
   })
 }
 
-// increases the order-value for currentNode and (if necessary) successor nodes recursively
+// Raises startingNode to newOrder and each node right of it that a raise
+// reaches to one more than the node that reached it, keeping the highest. A
+// raise only passes to nodes further right in the orders as they stood, so
+// taking nodes in that order settles each once. Taken first in first out,
+// a node was passed on again at each higher raise, and behind a chain of
+// bubbles the queue grew with the square of the chain.
 function increaseOrderForSuccessors(
   state: LayoutState,
   startingNode: number,
   tabuNode: number,
   newOrder: number,
 ): void {
+  const orders = state.nodeOrders
   const increasedOrders = new Map<number, number>()
-  // Walked with a head pointer rather than shift(), which is O(length) per pop.
-  const queue: [number, number][] = [[startingNode, newOrder]]
-  let head = 0
-
-  while (head < queue.length) {
-    const [currentNode, currentOrder] = queue[head]!
-    head += 1
-    const currentNodeOrder = state.nodeOrders[currentNode]
-
-    if (currentNodeOrder !== undefined && currentNodeOrder < currentOrder) {
-      if ((increasedOrders.get(currentNode) ?? -Infinity) < currentOrder) {
-        increasedOrders.set(currentNode, currentOrder)
-        state.nodes[currentNode]!.successors.forEach(successor => {
-          if (
-            state.nodeOrders[successor]! > currentNodeOrder &&
-            successor !== tabuNode
-          ) {
-            // only increase order of successors to the right of currentNode
-            queue.push([successor, currentOrder + 1])
-          }
-        })
-        if (currentNode !== startingNode) {
-          state.nodes[currentNode]!.predecessors.forEach(predecessor => {
-            if (
-              state.nodeOrders[predecessor]! > currentNodeOrder &&
-              predecessor !== tabuNode
-            ) {
-              // only increase order of predecessors to the right of currentNode
-              queue.push([predecessor, currentOrder + 1])
-            }
-          })
-        }
+  const pending = new MinHeap<number>(node => orders[node]!)
+  const raise = (node: number, order: number) => {
+    const old = orders[node]
+    if (
+      old !== undefined &&
+      old < order &&
+      (increasedOrders.get(node) ?? -Infinity) < order
+    ) {
+      if (!increasedOrders.has(node)) {
+        pending.push(node)
+      }
+      increasedOrders.set(node, order)
+    }
+  }
+  const passOn = (from: number, to: readonly number[], order: number) => {
+    for (const next of to) {
+      if (orders[next]! > orders[from]! && next !== tabuNode) {
+        raise(next, order)
       }
     }
   }
 
+  raise(startingNode, newOrder)
+  for (let node = pending.pop(); node !== undefined; node = pending.pop()) {
+    const order = increasedOrders.get(node)! + 1
+    passOn(node, state.nodes[node]!.successors, order)
+    if (node !== startingNode) {
+      passOn(node, state.nodes[node]!.predecessors, order)
+    }
+  }
+
   increasedOrders.forEach((value, key) => {
-    state.nodeOrders[key] = value
+    orders[key] = value
   })
 }
 
