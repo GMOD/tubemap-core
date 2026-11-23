@@ -31,6 +31,11 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 - Before banding, the layout turns walks stored back to front to match the
   reference, so reverse bands mark real inversions; MICB-KIR3DL1 goes from 97
   bands to 72 (`b38cd57`)
+- A walk is turned around when the last node it shares with the reference comes
+  before the first on the reference walk, not when it visits most of its nodes
+  in reverse, so a haplotype that spends most of the window inside an inversion
+  keeps its flanks forward; at an HPRC chr16 inversion breakpoint the commonest
+  walk goes from 53 reverse bands to 5 (`7de7785`)
 
 ### Topology, placement and facets
 
@@ -46,6 +51,8 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 - `trackWidth` sets the tube width (`c78fcb8`)
 - `freqWidth: 'linear'` makes a walk standing for n haplotypes n tubes wide
   (`518f125`)
+- `basesPerPixel` sets the scale of the `small` node width, which is linear in
+  length and upstream fixes at 100 bases a character (`b84047c`)
 - A node may omit `seq`, as the nodes of a graph fetched with `removeSequences`
   do (`2a43357`)
 
