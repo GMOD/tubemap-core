@@ -874,6 +874,14 @@ describe('layoutTubeMap', () => {
         ])
       })
 
+      it('keeps a forward walk that steps back past its start, as a tandem copy does', () => {
+        expect(labelsOf(banded([['C', 'D', 'A', 'B']]))).toEqual([
+          '1 haplotype (100%): Node A → Node B',
+          '1 haplotype (100%): Node C → Node D',
+          '1 haplotype (100%): Node D → Node A',
+        ])
+      })
+
       it('goes by orientation when a walk ends on the reference node it started on', () => {
         expect(labelsOf(banded([['-C', '-B', '-C']]))).toEqual([
           '1 haplotype (100%): Node B → Node C',

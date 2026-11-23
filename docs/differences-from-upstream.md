@@ -36,6 +36,8 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
   in reverse, so a haplotype that spends most of the window inside an inversion
   keeps its flanks forward; at an HPRC chr16 inversion breakpoint the commonest
   walk goes from 53 reverse bands to 5 (`7de7785`)
+- A walk that visits the reference's nodes only one way keeps that direction, so
+  a tandem copy that steps back past its start is not turned around
 
 ### Topology, placement and facets
 

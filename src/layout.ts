@@ -2722,11 +2722,14 @@ function bandHaplotypes(
 
 // A graph can store a walk in either orientation, so a haplotype can arrive
 // back to front relative to the reference. Banded that way, one allele splits
-// into a forward and a reverse band. Turn a walk around when the last node it
-// shares with the reference comes earlier on the reference than the first. A
-// count of the nodes visited against the reference would also turn around a
-// forward walk that spends most of the window inside an inversion; that count
-// only settles a walk that ends at the reference step it started on.
+// into a forward and a reverse band. A walk that visits the reference's nodes
+// only along it, or only against it, reads that way, so a tandem copy stepping
+// back past its start stays forward. One that does both is turned around when
+// the last node it shares with the reference comes earlier on the reference
+// than the first; a count of the nodes visited against the reference would
+// also turn around a forward walk that spends most of the window inside an
+// inversion. That count settles a walk that ends at the reference step it
+// started on.
 function orientedLike(refVisits: Int32Array, walk: Track): Track {
   const shared = walk.indexSequence.filter(
     visit => refVisits[Math.abs(visit)] !== 0,
@@ -2734,17 +2737,14 @@ function orientedLike(refVisits: Int32Array, walk: Track): Track {
   const refStep = (visit: number | undefined) =>
     visit === undefined ? 0 : Math.abs(refVisits[Math.abs(visit)]!)
   const progress = refStep(shared[shared.length - 1]) - refStep(shared[0])
-  const direction =
-    progress === 0
-      ? shared.reduce(
-          (agreement, visit) =>
-            agreement +
-            (Math.sign(refVisits[Math.abs(visit)]!) === Math.sign(visit)
-              ? 1
-              : -1),
-          0,
-        )
-      : progress
+  const agreement = shared.reduce(
+    (sum, visit) =>
+      sum +
+      (Math.sign(refVisits[Math.abs(visit)]!) === Math.sign(visit) ? 1 : -1),
+    0,
+  )
+  const oneWay = Math.abs(agreement) === shared.length
+  const direction = progress === 0 || oneWay ? agreement : progress
   return direction >= 0
     ? walk
     : {
