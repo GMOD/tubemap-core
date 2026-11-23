@@ -67,6 +67,18 @@ async function mounted(
   )
 }
 
+async function hosted(walks: string, region: string) {
+  const api = new GBZBaseAPI()
+  const tracks: Tracks = [{ trackFile: walks, trackType: 'graph' }]
+  return parseChunkedData(
+    await api.getChunkedData(
+      { dataType: 'mounted files', tracks, region },
+      null,
+    ),
+    tracks,
+  )
+}
+
 it('dumps layout inputs', async () => {
   for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
     const key = `EXAMPLE_${n}` as keyof typeof dataOriginTypes
@@ -95,6 +107,13 @@ it('dumps layout inputs', async () => {
         index: 'exampleData/micb-kir3dl1.haplotype-index.db',
         allHaplotypes: true,
       },
+    ),
+  )
+  write(
+    'hprc-chr15-sv',
+    await hosted(
+      'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f8.GRCh38.walks.gz',
+      'GRCh38#chr15:92768150-92768700',
     ),
   )
 })

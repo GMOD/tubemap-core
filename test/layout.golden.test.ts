@@ -289,4 +289,37 @@ describe('placeFacets golden output', () => {
       )
     })
   })
+
+  // Cut from the gfa-to-tabix walk file, so its nodes have lengths and no
+  // bases. 2.6 kb of reference with four structural sites: a 50 bp and a 99 bp
+  // insertion, a 74 bp deletion, and an 80 bp deletion beside a 156 bp one.
+  // Most haplotypes carry the 99 bp insertion and the 74 bp and 80 bp
+  // deletions, so the reference is the minority allele at those three sites.
+  describe('hprc-chr15-sv GRCh38#chr15:92768150-92768700', () => {
+    let sv: Dataset
+    beforeAll(() => {
+      sv = fixture('hprc-chr15-sv')
+    })
+
+    it('stands for 464 haplotypes, under half of them on the reference walk', () => {
+      const count = (tracks: InputTrack[]) =>
+        tracks.reduce((sum, t) => sum + (t.freq ?? 1), 0)
+      expect(count(sv.tracks)).toBe(464)
+      expect(count(sv.tracks.slice(0, 1))).toBeLessThan(232)
+    })
+
+    it('banded-haplotypes-compressed', async () => {
+      await expectGolden(
+        'hprc-chr15-sv.banded-haplotypes-compressed',
+        goldenText(
+          describeLayout(
+            layoutTubeMap(sv.nodes, sv.tracks, sv.reads, {
+              nodeWidthOption: 'compressed',
+              layers: [{ data: 'haplotypes', stat: 'coarsen' }],
+            }),
+          ),
+        ),
+      )
+    })
+  })
 })
