@@ -2697,10 +2697,10 @@ function bandHaplotypes(
   // A deduplicated reference walk also stands for the haplotypes identical to
   // it through the window; those belong in the bands, not the reference lane.
   const refDuplicates = (ref.freq ?? 1) - 1
-  const refSigns = firstVisitSigns(state, ref)
+  const refVisits = firstVisits(state, ref)
   const altHaplotypes = state.tracks
     .filter((_, i) => i !== refIndex)
-    .map(walk => orientedLike(refSigns, walk))
+    .map(walk => orientedLike(refVisits, walk))
   if (refDuplicates > 0) {
     altHaplotypes.push({ ...ref, freq: refDuplicates })
   }
@@ -2718,17 +2718,30 @@ function bandHaplotypes(
 
 // A graph can store a walk in either orientation, so a haplotype can arrive
 // back to front relative to the reference. Banded that way, one allele splits
-// into a forward and a reverse band. Turn a walk around when it runs against
-// the reference on most of the nodes they share.
-function orientedLike(refSigns: Int8Array, walk: Track): Track {
-  let agreement = 0
-  for (const visit of walk.indexSequence) {
-    const sign = refSigns[Math.abs(visit)]
-    if (sign !== undefined && sign !== 0) {
-      agreement += sign === Math.sign(visit) ? 1 : -1
-    }
-  }
-  return agreement >= 0
+// into a forward and a reverse band. Turn a walk around when the last node it
+// shares with the reference comes earlier on the reference than the first. A
+// count of the nodes visited against the reference would also turn around a
+// forward walk that spends most of the window inside an inversion; that count
+// only settles a walk that ends at the reference step it started on.
+function orientedLike(refVisits: Int32Array, walk: Track): Track {
+  const shared = walk.indexSequence.filter(
+    visit => refVisits[Math.abs(visit)] !== 0,
+  )
+  const refStep = (visit: number | undefined) =>
+    visit === undefined ? 0 : Math.abs(refVisits[Math.abs(visit)]!)
+  const progress = refStep(shared[shared.length - 1]) - refStep(shared[0])
+  const direction =
+    progress === 0
+      ? shared.reduce(
+          (agreement, visit) =>
+            agreement +
+            (Math.sign(refVisits[Math.abs(visit)]!) === Math.sign(visit)
+              ? 1
+              : -1),
+          0,
+        )
+      : progress
+  return direction >= 0
     ? walk
     : {
         ...walk,
@@ -2737,16 +2750,17 @@ function orientedLike(refSigns: Int8Array, walk: Track): Track {
       }
 }
 
-// The sign of `ref`'s first visit to each node index, 0 where it never visits.
-function firstVisitSigns(state: LayoutState, ref: Track): Int8Array {
-  const signs = new Int8Array(state.nodes.length)
-  for (const visit of ref.indexSequence) {
+// The step of `ref` that first visits each node index, counted from 1 and
+// negative for a reverse visit, 0 where it never visits.
+function firstVisits(state: LayoutState, ref: Track): Int32Array {
+  const visits = new Int32Array(state.nodes.length)
+  for (const [step, visit] of ref.indexSequence.entries()) {
     const node = Math.abs(visit)
-    if (signs[node] === 0) {
-      signs[node] = Math.sign(visit)
+    if (visits[node] === 0) {
+      visits[node] = Math.sign(visit) * (step + 1)
     }
   }
-  return signs
+  return visits
 }
 
 function formatShare({ count, total }: HaplotypeShare): string {

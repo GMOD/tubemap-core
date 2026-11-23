@@ -773,6 +773,78 @@ describe('layoutTubeMap', () => {
       expect(layout.coarsened.haplotypes?.reverse).toBe(true)
     })
 
+    describe('a haplotype with most of its nodes inside an inversion', () => {
+      const line: InputNode[] = [
+        { name: 'A', seq: 'ACGT' },
+        { name: 'B', seq: 'ACGTACGTACGTACGT' },
+        { name: 'C', seq: 'ACGTACGTACGTACGT' },
+        { name: 'D', seq: 'ACGTACGTACGTACGT' },
+        { name: 'E', seq: 'ACGT' },
+      ]
+      const banded = (walks: string[][]) =>
+        layoutTubeMap(
+          line,
+          [['A', 'B', 'C', 'D', 'E'], ...walks].map((sequence, id) => ({
+            id,
+            sequence,
+            sourceTrackID: 0,
+          })),
+          [],
+          {
+            mergeNodes: false,
+            layers: [{ data: 'haplotypes', stat: 'coarsen' }],
+          },
+        )!
+      const labelsOf = (layout: TubeMapLayout) =>
+        [...layout.coarsenedEdgeMeta.values()].map(meta => meta.label).sort()
+      const inverted = ['A', '-D', '-C', '-B', 'E']
+
+      it('keeps the flanks forward and the block reversed', () => {
+        expect(labelsOf(banded([inverted, inverted, inverted]))).toEqual([
+          '3 haplotypes (100%): Node -B → Node E',
+          '3 haplotypes (100%): Node -C → Node -B',
+          '3 haplotypes (100%): Node -D → Node -C',
+          '3 haplotypes (100%): Node A → Node -D',
+        ])
+      })
+
+      it('turns the same haplotype around when it is stored back to front', () => {
+        expect(
+          labelsOf(banded([inverted, ['-E', 'B', 'C', 'D', '-A']])),
+        ).toEqual(labelsOf(banded([inverted, inverted])))
+      })
+
+      it('keeps a walk that the window cuts inside the block', () => {
+        expect(
+          labelsOf(
+            banded([
+              ['A', '-D', '-C'],
+              ['-C', '-B', 'E'],
+            ]),
+          ),
+        ).toEqual([
+          '1 haplotype (50%): Node -B → Node E',
+          '1 haplotype (50%): Node -C → Node -B',
+          '1 haplotype (50%): Node -D → Node -C',
+          '1 haplotype (50%): Node A → Node -D',
+        ])
+      })
+
+      it('turns around a walk that lies wholly inside the block, which reads as stored back to front', () => {
+        expect(labelsOf(banded([['-D', '-C', '-B']]))).toEqual([
+          '1 haplotype (100%): Node B → Node C',
+          '1 haplotype (100%): Node C → Node D',
+        ])
+      })
+
+      it('goes by orientation when a walk ends on the reference node it started on', () => {
+        expect(labelsOf(banded([['-C', '-B', '-C']]))).toEqual([
+          '1 haplotype (100%): Node B → Node C',
+          '1 haplotype (100%): Node C → Node B',
+        ])
+      })
+    })
+
     it('never rounds a share to 0% or 100% that is neither', () => {
       const { labels } = bandLabels([
         { id: 1, sequence: ['1', '2', '4'], sourceTrackID: 0, freq: 199 },

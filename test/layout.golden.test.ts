@@ -322,4 +322,68 @@ describe('placeFacets golden output', () => {
       )
     })
   })
+
+  // The left breakpoint of a 16.5 kb inversion that 439 of the 464 haplotypes
+  // carry, cut from the gfa-to-tabix walk file. A cut keeps each haplotype's
+  // whole path between the window's ends, so every inverted walk runs through
+  // the 16.5 kb block and all 267 distinct walks come to 2.6 MB; the fixture
+  // keeps the reference walk, for 20 haplotypes, and the commonest inverted
+  // one, for 33. That walk leaves the flank forward and visits most of its
+  // nodes in reverse.
+  describe('hprc-chr16-inversion GRCh38#chr16:75207100-75207400', () => {
+    const banded: LayoutOptions = {
+      nodeWidthOption: 'compressed',
+      layers: [{ data: 'haplotypes', stat: 'coarsen' }],
+    }
+    let inversion: Dataset
+    beforeAll(() => {
+      inversion = fixture('hprc-chr16-inversion')
+    })
+
+    it('has an alternate that starts on the reference flank and visits most of its nodes in reverse', () => {
+      const [reference, alternate] = inversion.tracks
+      expect(alternate!.sequence.slice(0, 5)).toEqual(
+        reference!.sequence.slice(0, 5),
+      )
+      expect(
+        alternate!.sequence.filter(name => name.startsWith('-')).length,
+      ).toBeGreaterThan(alternate!.sequence.length * 0.9)
+    })
+
+    it('leaves the flank forward and reverses only the bands behind the breakpoint', () => {
+      const layout = layoutTubeMap(
+        inversion.nodes,
+        inversion.tracks,
+        inversion.reads,
+        banded,
+      )!
+      const labels = [...layout.coarsenedEdgeMeta.values()].map(m => m.label)
+      expect(labels).toContain(
+        '33 haplotypes (63%): Node 76235196 → Node 76236408',
+      )
+      expect(labels.filter(label => /Node -\d+ → Node -/.test(label))).toEqual([
+        '33 haplotypes (63%): Node -76235315 → Node -76235314',
+        '33 haplotypes (63%): Node -76235314 → Node -76235308',
+        '33 haplotypes (63%): Node -76235308 → Node -76235288',
+        '33 haplotypes (63%): Node -76235288 → Node -76235287',
+        '33 haplotypes (63%): Node -76235287 → Node -76235203',
+      ])
+    })
+
+    it('banded-haplotypes-compressed', async () => {
+      await expectGolden(
+        'hprc-chr16-inversion.banded-haplotypes-compressed',
+        goldenText(
+          describeLayout(
+            layoutTubeMap(
+              inversion.nodes,
+              inversion.tracks,
+              inversion.reads,
+              banded,
+            ),
+          ),
+        ),
+      )
+    })
+  })
 })

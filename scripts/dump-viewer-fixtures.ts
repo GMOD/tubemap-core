@@ -16,6 +16,7 @@ import { dataOriginTypes } from '../enums.ts'
 import * as demo from './demo-data.js'
 
 import type { Tracks } from '../Types.ts'
+import type { TubeMapData } from '../components/tubeMapData.ts'
 
 const dir = process.env.FIXTURE_DIR!
 
@@ -82,6 +83,24 @@ async function hosted(walks: string, region: string) {
   )
 }
 
+// The reference walk and the alternate standing for the most haplotypes, with
+// the nodes they visit: a window whose every walk would be megabytes
+function commonestAlternate(data: TubeMapData) {
+  const [reference, ...alternates] = data.tracks
+  const commonest = alternates.reduce((best, walk) =>
+    (walk.freq ?? 1) > (best.freq ?? 1) ? walk : best,
+  )
+  const tracks = [reference!, commonest]
+  const visited = new Set(
+    tracks.flatMap(walk => walk.sequence.map(name => name.replace(/^-/, ''))),
+  )
+  return {
+    nodes: data.nodes.filter(node => visited.has(node.name)),
+    tracks,
+    reads: data.reads,
+  }
+}
+
 it('dumps layout inputs', async () => {
   for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
     const key = `EXAMPLE_${n}` as keyof typeof dataOriginTypes
@@ -117,6 +136,15 @@ it('dumps layout inputs', async () => {
     await hosted(
       'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f8.GRCh38.walks.gz',
       'GRCh38#chr15:92768150-92768700',
+    ),
+  )
+  write(
+    'hprc-chr16-inversion',
+    commonestAlternate(
+      await hosted(
+        'https://jbrowse.org/demos/hprc/hprc-v2.1-mc-grch38-f8.GRCh38.walks.gz',
+        'GRCh38#chr16:75207100-75207400',
+      ),
     ),
   )
 })
