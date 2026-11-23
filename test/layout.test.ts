@@ -874,6 +874,31 @@ describe('layoutTubeMap', () => {
         ])
       })
 
+      it('marks the run through the block reverse, and no other', () => {
+        const layout = layoutTubeMap(
+          line,
+          [
+            { id: 0, sequence: ['A', 'B', 'C', 'D', 'E'], sourceTrackID: 0 },
+            { id: 1, sequence: inverted, sourceTrackID: 0 },
+          ],
+          [],
+          { mergeNodes: false },
+        )!
+        const runs = layout.shapes.rectangles.filter(r => r.id === 1)
+        const block = layout.nodes.filter(n => n.name === 'C')[0]!
+        expect(runs.filter(r => r.reverse)).toHaveLength(1)
+        expect(
+          runs
+            .filter(r => r.reverse)
+            .every(
+              r => r.xStart <= block.x && r.xEnd >= block.x + block.pixelWidth,
+            ),
+        ).toBe(true)
+        expect(
+          layout.shapes.rectangles.filter(r => r.id === 0 && r.reverse),
+        ).toEqual([])
+      })
+
       it('keeps a forward walk that steps back past its start, as a tandem copy does', () => {
         expect(labelsOf(banded([['C', 'D', 'A', 'B']]))).toEqual([
           '1 haplotype (100%): Node A → Node B',

@@ -67,6 +67,9 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
   no new layout (`6972630`)
 - `curvePaths`, `nodeOutlinePath`, `flattenPath` and `readMismatches` turn the
   layout into path data, polygons and placed read edits (`ba4f215`)
+- A rectangle its track travels right to left carries `reverse: true`, taken
+  from the path segment and not from the rectangle's ends, which a read's
+  offsets can put either way round
 - `bounds` covers everything drawn, including track ends and turnarounds
   (`617a54d`); upstream keeps no left edge, and takes its right edge from node
   positions alone, which misses turnarounds past the last column

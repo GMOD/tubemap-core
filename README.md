@@ -65,6 +65,8 @@ layout.shapes.rectangles[0]
 
 - Each shape holds its track's `id` and no color, so a recolor needs no new
   layout
+- A rectangle its track travels right to left has `reverse: true`, as the run
+  through an inversion does, so a renderer can draw direction marks
 - `layout.nodes` has a hole at index 0, so iterate it with `forEach` or
   `filter`, not `for...of` or `find`
 

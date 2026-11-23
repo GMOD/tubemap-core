@@ -2430,7 +2430,12 @@ function generateSVGShapesFromPath(state: LayoutState): void {
 
   state.tracks.forEach(track => {
     const { id, name, type, width, path } = track
-    const rectangle = (xStart: number, xEnd: number, yStart: number): void => {
+    const rectangle = (
+      xStart: number,
+      xEnd: number,
+      yStart: number,
+      isForward: boolean,
+    ): void => {
       state.shapes.rectangles.push({
         xStart: Math.min(xStart, xEnd),
         yStart,
@@ -2439,6 +2444,7 @@ function generateSVGShapesFromPath(state: LayoutState): void {
         id,
         name,
         type,
+        ...(isForward ? {} : { reverse: true }),
       })
     }
     const exitX = (seg: Segment) =>
@@ -2461,7 +2467,7 @@ function generateSVGShapesFromPath(state: LayoutState): void {
       }
       const xEnd = exitX(prev)
       if (xEnd !== xStart) {
-        rectangle(xStart, xEnd, yStart)
+        rectangle(xStart, xEnd, yStart, prev.isForward)
       }
       const yEnd = seg.y!
       const step = seg.order - prev.order
@@ -2504,7 +2510,7 @@ function generateSVGShapesFromPath(state: LayoutState): void {
       type === 'read'
         ? readBaseX(state, last, track.finalNodeCoverLength ?? 0)
         : exitX(last) + (last.isForward ? 20 : -20)
-    rectangle(xStart, xEnd, yStart)
+    rectangle(xStart, xEnd, yStart, last.isForward)
   })
 }
 

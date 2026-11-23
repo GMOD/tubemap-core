@@ -22,6 +22,8 @@ export interface TrackRectangle {
   id: number
   name?: string | undefined
   type?: TrackType | undefined
+  // set on a horizontal run its track travels right to left
+  reverse?: boolean
 }
 
 export interface TrackCurve {
