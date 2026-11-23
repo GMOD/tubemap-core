@@ -3,16 +3,19 @@
 // src/util/dump-fixtures.test.ts and run
 // `FIXTURE_DIR=<this repo>/test/fixtures pnpm vitest run src/util/dump-fixtures.test.ts`
 
-import { readFileSync, writeFileSync } from 'node:fs'
 import '../config-client.js'
+
+import { readFileSync, writeFileSync } from 'node:fs'
+
 import { GBZBaseAPI } from '../api/GBZBaseAPI.ts'
 import {
   computeExampleData,
   parseChunkedData,
 } from '../components/tubeMapData.ts'
 import { dataOriginTypes } from '../enums.ts'
-import type { Tracks } from '../Types.ts'
 import * as demo from './demo-data.js'
+
+import type { Tracks } from '../Types.ts'
 
 const dir = process.env.FIXTURE_DIR!
 

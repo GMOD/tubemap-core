@@ -6,7 +6,6 @@ esm
 *.log
 *.swp
 .vscode/
-.eslintcache
 *.cpuprofile
 .claude/settings.local.json
 .claude/worktrees/

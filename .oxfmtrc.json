@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "trailingComma": "all",
+  "singleQuote": true,
+  "arrowParens": "avoid",
+  "proseWrap": "always",
+  "printWidth": 80,
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "pnpm-lock.yaml",
+    "coverage",
+    "CHANGELOG.md",
+    ".claude",
+    "test/fixtures",
+    "test/layout-golden"
+  ],
+  "sortImports": {
+    "groups": [
+      ["side_effect", "side_effect_style"],
+      "value-builtin",
+      "value-external",
+      ["value-parent", "value-sibling", "value-index"],
+      "type",
+      "unknown"
+    ],
+    "newlinesBetween": true,
+    "ignoreCase": false
+  }
+}
