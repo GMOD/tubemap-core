@@ -146,5 +146,5 @@ headless rendering) are in its `doc/differences-from-upstream.md`.
 - `compareTrackByInitialOrdering` returns 0 for two tracks that never meet, so
   the draw-order sort has no consistent total order
 - Reads stack inside nodes, so loading reads moves the haplotype nodes below
-  them: 17 of 65 on hprc-chrM
+  them: 10 of 63 on hprc-chrM
 - Node orientation votes count reads as well as haplotypes
