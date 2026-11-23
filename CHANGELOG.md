@@ -1,3 +1,26 @@
+## [2.2.0](https://github.com/GMOD/tubemap-core/compare/v2.1.1...v2.2.0) (2026-11-23)
+
+### Documentation
+
+- The orientation rule and basesPerPixel among the differences from upstream ([0c90485](https://github.com/GMOD/tubemap-core/commit/0c904857ff902ca8188d8d65103386ae1925ee78))
+
+### Features
+
+- A rectangle its track travels right to left carries reverse, so a renderer can draw direction marks through an inversion ([c4f74ef](https://github.com/GMOD/tubemap-core/commit/c4f74ef3004dfe41e3aa143ae17e27d6503062f7))
+
+### Other Changes
+
+- Bump deps ([948d87c](https://github.com/GMOD/tubemap-core/commit/948d87cddb6d980238ed6c283ff1a008d392600d))
+- Lint with oxlint, format with oxfmt and typecheck with tsrs, so the build moves to TypeScript 7 ([9ebde36](https://github.com/GMOD/tubemap-core/commit/9ebde367b256b5ffb97258def71476afceca7f2c))
+- Banding turns a walk around by where it starts and ends on the reference, not by how many of its nodes it visits in reverse, so a haplotype that spends most of the window inside an inversion keeps its flanks forward and draws only the inverted block in reverse. ([7de7785](https://github.com/GMOD/tubemap-core/commit/7de7785d41f409172606ba528a70493299e729c9))
+- BasesPerPixel sets the scale of the small node width, which is linear in length, so a caller picks how many bases a pixel stands for and structural variant sizes read; unset, small draws as before. ([b84047c](https://github.com/GMOD/tubemap-core/commit/b84047c5a2f78d92f9c98d853d712b85b2490ccc))
+- Banding keeps a walk that visits the reference's nodes only one way in that direction, so a tandem copy stepping back past its start is not turned around ([74d4726](https://github.com/GMOD/tubemap-core/commit/74d47262f338945140a16ce36339bcbaf2ad9acd))
+
+### Tests
+
+- An HPRC chr15 fixture with structural variants, cut from the gfa-to-tabix walk file, where the reference is the minority allele at three sites ([a71c38b](https://github.com/GMOD/tubemap-core/commit/a71c38bc8343c93c3ac97d429a0946d983a7be93))
+- Find the inverted block through nodeMap, which lint asks for over filter ([96be29f](https://github.com/GMOD/tubemap-core/commit/96be29f705fa690fc08bb0e20f3b8c3e8cfcd12c))
+
 ## [2.1.1](https://github.com/GMOD/tubemap-core/compare/v2.1.0...v2.1.1) (2026-11-23)
 
 ### Other Changes
