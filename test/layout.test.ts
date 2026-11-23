@@ -359,6 +359,43 @@ describe('layoutTubeMap', () => {
     }
   })
 
+  describe('small node widths', () => {
+    const lengths = [1, 50, 149, 150, 500, 9000, 46000]
+    const widths = (basesPerPixel?: number) => {
+      const layout = layoutTubeMap(
+        lengths.map(sequenceLength => ({
+          name: `${sequenceLength}`,
+          sequenceLength,
+        })),
+        [{ id: 0, sequence: lengths.map(String), sourceTrackID: 0 }],
+        [],
+        {
+          nodeWidthOption: 'small',
+          mergeNodes: false,
+          ...(basesPerPixel === undefined ? {} : { basesPerPixel }),
+        },
+      )!
+      return lengths.map(
+        length => layout.nodes[layout.nodeMap.get(`${length}`)!]!.pixelWidth,
+      )
+    }
+
+    it('draws a character per 100 bases when basesPerPixel is unset', () => {
+      expect(widths()).toEqual(
+        lengths.map(length =>
+          Math.max(Math.round((length / 100 - 1) * 8.401), 0),
+        ),
+      )
+      expect(widths()).toEqual([0, 0, 4, 4, 34, 748, 3856])
+    })
+
+    it('draws basesPerPixel bases to the px, a character narrower, and no node below the minimum width', () => {
+      expect(widths(50)).toEqual([0, 0, 0, 0, 2, 172, 912])
+      const [short, long] = widths(10).slice(-2)
+      expect(long! - short!).toBe((46000 - 9000) / 10)
+    })
+  })
+
   it('keeps widths from going negative for short or empty nodes and rare haplotypes', () => {
     const withEmpty = [...nodes, { name: 'empty', seq: '' }]
     const throughEmpty: InputTrack[] = [

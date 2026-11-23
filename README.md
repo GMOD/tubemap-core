@@ -163,6 +163,10 @@ const { panels, bounds } = placeFacets(topology, { facetBy: 'sample_name' })
 
 - `nodeWidthOption`: `normal` (default), `compressed`, `small`, `fixed`
 - `charWidth`: px per base under `normal` (8.401)
+- `basesPerPixel`: the bases one px stands for under `small`, which draws width
+  linear in length (about 11.9, a character per 100 bases). A node's width is
+  its length at that scale less one character (8.4 px), and no less than a
+  one-base node's, so short nodes stay visible
 - `trackWidth`: tube width (15)
 - `mergeNodes`, `showReads` (true); `coarsenedReadView`, `ignoreStrand` (false)
 - `layers`: the track sets to draw, each with an optional stat

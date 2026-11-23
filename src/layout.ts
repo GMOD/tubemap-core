@@ -66,10 +66,13 @@ export interface TopologyOptions {
   ignoreStrand?: boolean
   // normal: width is sequence length, at `charWidth` per base
   // compressed: log2 of sequence length
-  // small: 1% of sequence length
+  // small: linear in sequence length, at `basesPerPixel`
   // fixed: every node one width
   nodeWidthOption?: NodeWidthOption
   charWidth?: number
+  // the bases one px stands for under `small`; unset, a character stands for
+  // 100 bases, about 11.9 a px
+  basesPerPixel?: number
   // a haplotype tube's width in layout px, where no `freq` scales it
   trackWidth?: number
   // how `freq` widens a tube: log grows slowly, as sequenceTubeMap draws vg's
@@ -215,6 +218,7 @@ function configFrom(options: TopologyOptions, hasReads: boolean): LayoutConfig {
     ignoreStrand: options.ignoreStrand ?? false,
     nodeWidthOption: options.nodeWidthOption ?? 'normal',
     charWidth: options.charWidth ?? DEFAULT_CHAR_WIDTH,
+    basesPerPixel: options.basesPerPixel ?? 100 / DEFAULT_CHAR_WIDTH,
     trackWidth: options.trackWidth ?? 15,
     freqWidth: options.freqWidth ?? 'log',
   }
@@ -2866,15 +2870,17 @@ function generateNodeWidth(state: LayoutState): void {
         node.pixelWidth = Math.round((node.width - 1) * DEFAULT_CHAR_WIDTH)
       })
       break
-    case 'small':
+    case 'small': {
+      const basesPerCharacter = state.config.basesPerPixel * DEFAULT_CHAR_WIDTH
       state.nodes.forEach(node => {
-        node.width = node.sequenceLength / 100
+        node.width = node.sequenceLength / basesPerCharacter
         node.pixelWidth = Math.max(
           Math.round((node.width - 1) * DEFAULT_CHAR_WIDTH),
           0,
         )
       })
       break
+    }
     case 'fixed':
       state.nodes.forEach(node => {
         node.width = 10
